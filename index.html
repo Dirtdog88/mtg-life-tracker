@@ -228,6 +228,22 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
   color: var(--ink); font-family: var(--f-ui); font-size: 16px; -webkit-user-select: text; user-select: text;
 }
 .tog.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
+.tog.armed { color: var(--danger); border-color: var(--danger); }
+.tok .pt.anthem { color: #84d9a4; }
+.anths { display: flex; gap: 6px; flex-wrap: wrap; }
+.player.has-anthems .cards { max-height: calc(34cqh - 42px); }
+.achip {
+  min-height: 34px; padding: 4px 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--p) 50%, transparent); background: color-mix(in srgb, var(--p) 12%, transparent);
+  font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--ink);
+}
+.achip b { font-family: var(--f-num); font-size: 15px; color: var(--p); }
+.kit-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.kit-row input {
+  flex: 1; min-width: 160px; height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .3); color: var(--ink); font-family: var(--f-ui); font-size: 16px; -webkit-user-select: text; user-select: text;
+}
+.hint { margin: 0; font-size: 13px; color: var(--muted); }
 
 /* Per-player drawer: opens inside the half, so it faces its owner */
 .drawer {
@@ -528,13 +544,14 @@ const COUNTERS = [
 ];
 
 function freshPlayer(name, color, life) {
-  return { name, color, life, poison: 0, cmd: 0, tax: 0, energy: 0, exp: 0, storm: 0, tokens: [] };
+  return { name, color, life, poison: 0, cmd: 0, tax: 0, energy: 0, exp: 0, storm: 0, tokens: [], anthems: [], kit: null };
 }
 function newState(prev, formatId, life, first) {
   const p = prev ? prev.players : [{ name: 'Player 1', color: 'blue' }, { name: 'Player 2', color: 'red' }];
   return {
     format: formatId, startLife: life,
-    players: [freshPlayer(p[0].name, p[0].color, life), freshPlayer(p[1].name, p[1].color, life)],
+    // The chosen deck kit carries over to the next game; tokens and anthems do not
+    players: [0, 1].map(k => Object.assign(freshPlayer(p[k].name, p[k].color, life), { kit: p[k].kit || null })),
     first, active: first, turn: 1, monarch: null, initiative: null, dayNight: null,
     startedAt: Date.now(), log: []
   };
@@ -589,13 +606,15 @@ function buildPanel(i) {
       </div>
       <div class="bottom">
         <div class="tray" data-tray hidden>
-          <div class="tray-head"><span class="sum" data-tsum></span><button data-tclear>Clear all</button></div>
+          <div class="tray-head"><span class="sum" data-tsum></span><button data-tclear>Clear tokens</button></div>
+          <div class="anths" data-anths></div>
           <div class="cards" data-cards></div>
         </div>
         <div class="chips" data-chips></div>
       </div>
       <div class="drawer" data-tokpick hidden></div>
       <div class="drawer" data-tokedit hidden></div>
+      <div class="drawer" data-anthedit hidden></div>
       <div class="drawer" data-drawer hidden>
         <div class="drawer-head">
           <input id="name-${i}" data-name maxlength="18" autocomplete="off" aria-label="Player name">
@@ -628,8 +647,21 @@ function buildPanel(i) {
     const c = e.target.closest('[data-tok]'); if (c) openEditor(i, c.dataset.tok);
   });
   el.querySelector('[data-tclear]').addEventListener('click', e => clearTokens(i, e.currentTarget));
+  el.querySelector('[data-anths]').addEventListener('click', e => {
+    const c = e.target.closest('[data-anth]'); if (c) openAnthem(i, c.dataset.anth);
+  });
+  const ae = el.querySelector('[data-anthedit]');
+  ae.addEventListener('click', e => { const b = e.target.closest('[data-ae]'); if (b) anthemAction(i, b); });
+  ae.addEventListener('input', e => {
+    const f = e.target.dataset.af; const a = anthOf(i);
+    if (!f || !a) return;
+    a[f] = f === 'name' ? (e.target.value.trim() || 'Anthem') : e.target.value.trim();
+    save(); renderTokens(i);
+  });
+  ae.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.target.blur(); });
   const pk = el.querySelector('[data-tokpick]');
   pk.addEventListener('click', e => { const b = e.target.closest('[data-pk]'); if (b) pickerAction(i, b); });
+  pk.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-kitname]')) { e.preventDefault(); saveKitName(i); } });
   const ed = el.querySelector('[data-tokedit]');
   ed.addEventListener('click', e => { const b = e.target.closest('[data-te]'); if (b) editorAction(i, b); });
   ed.addEventListener('input', e => {
@@ -664,7 +696,7 @@ function buildPanel(i) {
 }
 
 function openDrawer(i) {
-  closePicker(i); closeEditor(i);
+  closePicker(i); closeEditor(i); closeAnthem(i);
   const d = panels[i].querySelector('[data-drawer]');
   panels[i].querySelector('[data-name]').value = state.players[i].name;
   d.hidden = false;
@@ -848,13 +880,48 @@ function makeToken(tpl, qty) {
     sacLife: tpl.sacLife || 0, counters: 0, tempP: 0, tempT: 0, qty, tapped: false, sick: tpl.kind === 'creature'
   };
 }
-const effP = t => t.power + t.counters + t.tempP;
-const effT = t => t.toughness + t.counters + t.tempT;
+/* Anthems: static boosts that apply to every matching creature token a player controls */
+const ANTHEM_PRESETS = [
+  { name: 'Glorious Anthem', p: 1, t: 1, keywords: [], mode: 'all', value: '' },
+  { name: 'Intangible Virtue', p: 1, t: 1, keywords: ['Vigilance'], mode: 'all', value: '' },
+  { name: 'Honor of the Pure', p: 1, t: 1, keywords: [], mode: 'color', value: 'white' },
+  { name: 'Tribal lord', p: 1, t: 1, keywords: [], mode: 'type', value: 'Goblin' }
+];
+const escRe = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// "Goblin" also matches "Goblins"; several words match if any one of them does
+function typeMatch(text, value) {
+  return value.split(/[\s,]+/).filter(Boolean).some(w =>
+    new RegExp(`\\b${escRe(w.replace(/s$/i, ''))}s?\\b`, 'i').test(text));
+}
+function anthemApplies(a, t) {
+  if (t.kind !== 'creature') return false;
+  if (a.mode === 'type') return !!a.value && typeMatch(`${t.types} ${t.name}`, a.value);
+  if (a.mode === 'color') return t.color === a.value;
+  return true;
+}
+function auraFor(i, t) {
+  const out = { p: 0, t: 0, kw: [] };
+  state.players[i].anthems.forEach(a => {
+    if (!anthemApplies(a, t)) return;
+    out.p += a.p; out.t += a.t;
+    a.keywords.forEach(k => { if (!out.kw.includes(k)) out.kw.push(k); });
+  });
+  return out;
+}
+const effP = (t, a) => t.power + t.counters + t.tempP + (a ? a.p : 0);
+const effT = (t, a) => t.toughness + t.counters + t.tempT + (a ? a.t : 0);
+const allKw = (t, a) => [...t.keywords, ...(a ? a.kw.filter(k => !t.keywords.includes(k)) : [])];
+const signed = n => (n >= 0 ? '+' : '−') + Math.abs(n);
+function anthSub(a) {
+  const who = a.mode === 'type' ? (a.value ? `${a.value}s` : 'a creature type')
+    : a.mode === 'color' ? `${(TOKEN_COLOR_NAMES[a.value] || '').toLowerCase()} creatures` : 'all creatures';
+  return `${signed(a.p)}/${signed(a.t)}${a.keywords.length ? ' · ' + a.keywords.join(', ') : ''} · ${who}`;
+}
 const tokLabel = t => `${t.name}${t.qty > 1 ? ` ×${t.qty}` : ''}`;
-function statLine(t) {
+function statLine(t, i) {
   if (t.kind === 'creature') {
-    const c = t.counters;
-    return `${effP(t)}/${effT(t)}${c ? ` (${c > 0 ? '+' : ''}${c}/${c > 0 ? '+' : ''}${c} counters)` : ''}`;
+    const c = t.counters, a = auraFor(i, t);
+    return `${effP(t, a)}/${effT(t, a)}${c ? ` (${c > 0 ? '+' : ''}${c}/${c > 0 ? '+' : ''}${c} counters)` : ''}`;
   }
   return t.kind === 'planeswalker' ? `loyalty ${t.loyalty}` : '';
 }
@@ -920,12 +987,34 @@ function createTokens(i, tpl, qty, openAfter) {
 function clearTokens(i, btn) {
   if (!btn.classList.contains('armed')) {
     btn.classList.add('armed'); btn.textContent = 'Tap to confirm';
-    setTimeout(() => { btn.classList.remove('armed'); btn.textContent = 'Clear all'; }, 3000);
+    setTimeout(() => { btn.classList.remove('armed'); btn.textContent = 'Clear tokens'; }, 3000);
     return;
   }
-  btn.classList.remove('armed'); btn.textContent = 'Clear all';
+  btn.classList.remove('armed'); btn.textContent = 'Clear tokens';
   closeEditor(i);
   tokAct(i, null, () => { state.players[i].tokens = []; return 'clears all tokens'; });
+}
+
+/* Deck kits: a saved set of tokens and anthems per deck, shown first in the picker */
+const KITS_KEY = 'mtg-duel-kits-v1';
+let kits = (() => { try { return JSON.parse(localStorage.getItem(KITS_KEY)) || []; } catch (e) { return []; } })();
+function saveKits() { try { localStorage.setItem(KITS_KEY, JSON.stringify(kits)); } catch (e) { /* ignore */ } }
+const kitOf = i => kits.find(k => k.id === state.players[i].kit) || null;
+const pickUi = [{ naming: null }, { naming: null }];
+const tokTemplate = s => ({ kind: s.kind, name: s.name, color: s.color, types: s.types, text: s.text, keywords: [...s.keywords],
+  power: s.power, toughness: s.toughness, loyalty: s.loyalty, sacLife: s.sacLife });
+const anthTemplate = a => ({ name: a.name, p: a.p, t: a.t, keywords: [...a.keywords], mode: a.mode, value: a.value });
+function addToList(list, tpl) {
+  const k = JSON.stringify(tpl);
+  if (!list.some(m => JSON.stringify(m) === k)) list.push(tpl);
+}
+function saveKitName(i) {
+  const input = panels[i].querySelector('[data-kitname]');
+  const name = input ? input.value.trim() : '';
+  if (!name) { if (input) input.focus(); return; }
+  if (pickUi[i].naming === 'rename' && kitOf(i)) kitOf(i).name = name;
+  else { const k = { id: uid(), name, tokens: [], anthems: [] }; kits.push(k); state.players[i].kit = k.id; save(); }
+  saveKits(); pickUi[i].naming = null; openPicker(i, true);
 }
 
 /* Picker */
@@ -935,25 +1024,47 @@ function tplSub(t) {
   return t.types || t.kind;
 }
 const pickBtn = (t, attrs) => `<button class="pick" style="--t:${COLORS[t.color] || COLORS.steel}" ${attrs}><strong>${escapeHtml(t.name)}</strong><span>${escapeHtml(tplSub(t))}</span></button>`;
-function openPicker(i) {
-  closeDrawer(i); closeEditor(i);
+function openPicker(i, keepScroll) {
+  closeDrawer(i); closeEditor(i); closeAnthem(i);
   const el = panels[i].querySelector('[data-tokpick]');
+  const top = el.scrollTop;
+  const kit = kitOf(i), ui = pickUi[i];
+  const kitBtns = [`<button class="tog" data-pk="kit" data-v="" aria-pressed="${!kit}">No kit</button>`]
+    .concat(kits.map(k => `<button class="tog" data-pk="kit" data-v="${k.id}" aria-pressed="${!!kit && kit.id === k.id}">${escapeHtml(k.name)}</button>`))
+    .concat(`<button class="tog" data-pk="kitnew">+ New kit</button>`).join('');
+  const naming = ui.naming ? `<div class="kit-row">
+      <input data-kitname maxlength="30" autocomplete="off" placeholder="Deck name, e.g. Krenko" value="${ui.naming === 'rename' && kit ? escapeHtml(kit.name) : ''}" aria-label="Deck kit name">
+      <button class="tog" data-pk="kitsave">Save</button><button class="tog" data-pk="kitcancel">Cancel</button></div>` : '';
+  let kitBody = '';
+  if (kit && !ui.naming) {
+    const items = kit.tokens.map((t, n) => `<div class="pick-wrap">${pickBtn(t, `data-pk="kittok" data-n="${n}"`)}<button class="unpick" data-pk="unkittok" data-n="${n}" aria-label="Remove ${escapeHtml(t.name)} from ${escapeHtml(kit.name)}">×</button></div>`)
+      .concat(kit.anthems.map((a, n) => `<div class="pick-wrap">${anthBtn(a, `data-pk="kitanth" data-n="${n}"`)}<button class="unpick" data-pk="unkitanth" data-n="${n}" aria-label="Remove ${escapeHtml(a.name)} from ${escapeHtml(kit.name)}">×</button></div>`));
+    kitBody = (items.length ? `<div class="picks">${items.join('')}</div>`
+      : `<p class="hint">This kit is empty. Open any token or anthem on the board and tap “Add to ${escapeHtml(kit.name)}”.</p>`)
+      + `<div class="toggles"><button class="tog" data-pk="kitrename">Rename</button><button class="tog danger" data-pk="kitdel">Delete kit</button></div>`;
+  }
+  const kitSec = `<div class="sec"><div class="lbl">Deck kit</div><div class="toggles">${kitBtns}</div>${naming}${kitBody}</div>`;
   const group = (title, key) => `<div class="sec"><div class="lbl">${title}</div><div class="picks">${PRESETS[key].map((t, n) => pickBtn(t, `data-pk="preset" data-g="${key}" data-n="${n}"`)).join('')}</div></div>`;
   const mine = myTokens.length ? `<div class="sec"><div class="lbl">My tokens</div><div class="picks">${myTokens.map((t, n) =>
     `<div class="pick-wrap">${pickBtn(t, `data-pk="mine" data-n="${n}"`)}<button class="unpick" data-pk="unmine" data-n="${n}" aria-label="Remove ${escapeHtml(t.name)} from My tokens">×</button></div>`).join('')}</div></div>` : '';
+  const anths = `<div class="sec"><div class="lbl">Anthems</div><div class="picks">${ANTHEM_PRESETS.map((a, n) => anthBtn(a, `data-pk="anth" data-n="${n}"`)).join('')}</div></div>`;
   el.innerHTML = `
     <div class="drawer-head"><span class="ptitle">Add tokens</span><button class="done" data-pk="close">Close</button></div>
+    ${kitSec}
     <div class="row"><div class="rl"><strong>How many</strong><small>Created together as one group</small></div>
       <button class="step" data-pk="q" data-d="-1" aria-label="Fewer">−</button><span class="rv" data-pqv>${pickQty[i]}</span>
       <button class="step" data-pk="q" data-d="1" aria-label="More">+</button></div>
     ${mine}
+    ${anths}
     ${group('Creatures', 'creatures')}
     ${group('Artifacts and enchantments', 'others')}
     ${group('Planeswalkers', 'walkers')}
     <div class="toggles"><button class="tog" data-pk="custom">Make your own</button></div>`;
-  el.hidden = false; el.scrollTop = 0;
+  el.hidden = false; el.scrollTop = keepScroll ? top : 0;
+  const nameInput = el.querySelector('[data-kitname]'); if (nameInput) nameInput.focus();
 }
-function closePicker(i) { panels[i].querySelector('[data-tokpick]').hidden = true; }
+const anthBtn = (a, attrs) => `<button class="pick" style="--t:var(--p)" ${attrs}><strong>${escapeHtml(a.name)}</strong><span>${escapeHtml(anthSub(a))}</span></button>`;
+function closePicker(i) { pickUi[i].naming = null; panels[i].querySelector('[data-tokpick]').hidden = true; }
 function pickerAction(i, b) {
   const a = b.dataset.pk, n = Number(b.dataset.n);
   if (a === 'close') closePicker(i);
@@ -965,11 +1076,117 @@ function pickerAction(i, b) {
   else if (a === 'mine') createTokens(i, myTokens[n], pickQty[i]);
   else if (a === 'unmine') { myTokens.splice(n, 1); saveMine(); openPicker(i); }
   else if (a === 'custom') createTokens(i, { kind: 'creature', name: 'Token', color: 'steel', power: 1, toughness: 1, types: 'Creature' }, pickQty[i], true);
+  else if (a === 'anth') addAnthem(i, ANTHEM_PRESETS[n], ANTHEM_PRESETS[n].mode === 'type');
+  else if (a === 'kittok') createTokens(i, kitOf(i).tokens[n], pickQty[i]);
+  else if (a === 'kitanth') addAnthem(i, kitOf(i).anthems[n]);
+  else if (a === 'unkittok') { kitOf(i).tokens.splice(n, 1); saveKits(); openPicker(i, true); }
+  else if (a === 'unkitanth') { kitOf(i).anthems.splice(n, 1); saveKits(); openPicker(i, true); }
+  else if (a === 'kit') { state.players[i].kit = b.dataset.v || null; pickUi[i].naming = null; save(); openPicker(i, true); }
+  else if (a === 'kitnew') { pickUi[i].naming = 'new'; openPicker(i, true); }
+  else if (a === 'kitrename') { pickUi[i].naming = 'rename'; openPicker(i, true); }
+  else if (a === 'kitcancel') { pickUi[i].naming = null; openPicker(i, true); }
+  else if (a === 'kitsave') saveKitName(i);
+  else if (a === 'kitdel') {
+    if (!b.classList.contains('armed')) {
+      b.classList.add('armed'); b.textContent = 'Tap to delete';
+      setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.textContent = 'Delete kit'; } }, 3000);
+      return;
+    }
+    const id = state.players[i].kit;
+    kits = kits.filter(k => k.id !== id); saveKits();
+    state.players.forEach(p => { if (p.kit === id) p.kit = null; });
+    save(); openPicker(i, true);
+  }
+}
+
+/* Anthem editor */
+const anthEdit = [null, null];
+const anthOf = i => anthEdit[i] ? state.players[i].anthems.find(a => a.id === anthEdit[i]) : null;
+function addAnthem(i, tpl, openAfter) {
+  closePicker(i);
+  tokAct(i, null, () => {
+    const a = { id: uid(), ...anthTemplate(tpl) };
+    state.players[i].anthems.push(a);
+    if (openAfter) anthEdit[i] = a.id;
+    return `adds ${a.name} (${anthSub(a)})`;
+  });
+}
+function openAnthem(i, id) {
+  closeDrawer(i); closePicker(i); closeEditor(i);
+  anthEdit[i] = id; renderAnthem(i);
+  panels[i].querySelector('[data-anthedit]').scrollTop = 0;
+}
+function closeAnthem(i) {
+  anthEdit[i] = null;
+  const el = panels[i].querySelector('[data-anthedit]');
+  const f = document.activeElement; if (f && el.contains(f)) f.blur();
+  el.hidden = true;
+}
+function anthemHtml(i, a) {
+  const tog = (attrs, label, on) => `<button class="tog" ${attrs} aria-pressed="${!!on}">${label}</button>`;
+  const num = (f, label, val) => `<div class="row"><div class="rl"><strong>${label}</strong><small>Added to each matching creature</small></div>
+    <button class="step" data-ae="num" data-f="${f}" data-d="-1" aria-label="Lower ${label}">−</button><span class="rv">${signed(val)}</span>
+    <button class="step" data-ae="num" data-f="${f}" data-d="1" aria-label="Raise ${label}">+</button></div>`;
+  const kit = kitOf(i);
+  const n = state.players[i].tokens.filter(t => anthemApplies(a, t)).reduce((s, t) => s + t.qty, 0);
+  const swatches = Object.keys(COLORS).map(c =>
+    `<button class="sw" data-ae="color" data-v="${c}" style="--c:${COLORS[c]}" aria-label="${TOKEN_COLOR_NAMES[c]}" aria-pressed="${a.value === c}"></button>`).join('');
+  return `
+    <div class="drawer-head">
+      <input id="an-${i}" data-af="name" value="${escapeHtml(a.name)}" maxlength="30" autocomplete="off" aria-label="Anthem name">
+      <button class="done" data-ae="done">Done</button>
+    </div>
+    <div class="lbl">Anthem · boosting ${n} creature${n === 1 ? '' : 's'} right now</div>
+    <div class="rows">${num('p', 'Power bonus', a.p)}${num('t', 'Toughness bonus', a.t)}</div>
+    <div class="sec"><div class="lbl">Applies to</div><div class="toggles">
+      ${tog('data-ae="mode" data-v="all"', 'All my creature tokens', a.mode === 'all')}
+      ${tog('data-ae="mode" data-v="type"', 'One creature type', a.mode === 'type')}
+      ${tog('data-ae="mode" data-v="color"', 'One color', a.mode === 'color')}</div></div>
+    ${a.mode === 'type' ? `<div class="field"><label class="lbl" for="av-${i}">Creature type</label><input id="av-${i}" data-af="value" value="${escapeHtml(a.value)}" autocomplete="off" placeholder="Goblin"></div>` : ''}
+    ${a.mode === 'color' ? `<div class="swatches"><span class="label">Color</span>${swatches}</div>` : ''}
+    <div class="sec"><div class="lbl">Abilities it grants</div><div class="toggles">${KEYWORDS.map(k => tog(`data-ae="kw" data-v="${k}"`, k, a.keywords.includes(k))).join('')}</div></div>
+    <div class="toggles">
+      ${kit ? `<button class="tog" data-ae="kit">Add to ${escapeHtml(kit.name)}</button>` : ''}
+      <button class="tog danger" data-ae="remove">Remove anthem</button>
+    </div>`;
+}
+function renderAnthem(i) {
+  const el = panels[i].querySelector('[data-anthedit]');
+  const a = anthOf(i);
+  if (!a) { anthEdit[i] = null; el.hidden = true; return; }
+  const f = document.activeElement;
+  if (!el.hidden && f && f.tagName === 'INPUT' && el.contains(f)) return;
+  const top = el.scrollTop;
+  el.innerHTML = anthemHtml(i, a);
+  el.hidden = false; el.scrollTop = top;
+}
+function anthemAction(i, b) {
+  const act = b.dataset.ae, a = anthOf(i);
+  if (!a) { closeAnthem(i); return; }
+  if (act === 'done') closeAnthem(i);
+  else if (act === 'num') tokAct(i, `anth:${b.dataset.f}:${a.id}`, () => { a[b.dataset.f] += Number(b.dataset.d); return `${a.name} → ${anthSub(a)}`; });
+  else if (act === 'mode') tokAct(i, null, () => {
+    if (a.mode === b.dataset.v) return null;
+    a.mode = b.dataset.v; a.value = a.mode === 'color' ? 'white' : '';
+    return `${a.name} → ${anthSub(a)}`;
+  });
+  else if (act === 'color') tokAct(i, null, () => { if (a.value === b.dataset.v) return null; a.value = b.dataset.v; return `${a.name} → ${anthSub(a)}`; });
+  else if (act === 'kw') tokAct(i, null, () => {
+    const k = b.dataset.v, has = a.keywords.includes(k);
+    a.keywords = has ? a.keywords.filter(x => x !== k) : [...a.keywords, k];
+    return `${a.name} → ${anthSub(a)}`;
+  });
+  else if (act === 'kit') { const kit = kitOf(i); if (kit) { addToList(kit.anthems, anthTemplate(a)); saveKits(); b.textContent = `Added to ${kit.name}`; } }
+  else if (act === 'remove') tokAct(i, null, () => {
+    state.players[i].anthems = state.players[i].anthems.filter(x => x.id !== a.id);
+    anthEdit[i] = null;
+    return `removes ${a.name}`;
+  });
 }
 
 /* Editor */
 function openEditor(i, id) {
-  closeDrawer(i); closePicker(i);
+  closeDrawer(i); closePicker(i); closeAnthem(i);
   edit[i] = { id, scope: 'all' };
   renderEditor(i);
   panels[i].querySelector('[data-tokedit]').scrollTop = 0;
@@ -1001,7 +1218,7 @@ function editorHtml(i, t) {
       <input id="tn-${i}" data-tf="name" value="${escapeHtml(t.name)}" maxlength="28" autocomplete="off" aria-label="Token name">
       <button class="done" data-te="done">Done</button>
     </div>
-    ${isC ? `<div class="lbl">Now ${effP(t)}/${effT(t)}${effT(t) <= 0 ? ' · dies at 0 toughness' : ''}</div>` : ''}
+    ${isC ? (() => { const a = auraFor(i, t); return `<div class="lbl">Now ${effP(t, a)}/${effT(t, a)}${effT(t, a) <= 0 ? ' · dies at 0 toughness' : ''}${a.p || a.t || a.kw.length ? ` · anthems give ${signed(a.p)}/${signed(a.t)}${a.kw.length ? ', ' + a.kw.join(', ') : ''}` : ''}</div>`; })() : ''}
     ${t.qty > 1 ? `<div class="toggles"><span class="lbl">Changes apply to</span>
       ${tog('data-te="scope" data-v="all"', `All ${t.qty}`, edit[i].scope === 'all')}${tog('data-te="scope" data-v="one"', 'Just one', edit[i].scope === 'one')}</div>` : ''}
     <div class="rows">${rows.join('')}</div>
@@ -1015,6 +1232,7 @@ function editorHtml(i, t) {
       <button class="tog" data-te="sac">Sacrifice one${t.sacLife ? ` · gain ${t.sacLife} life` : ''}</button>
       <button class="tog" data-te="copy">Copy token</button>
       <button class="tog" data-te="save">Save to My tokens</button>
+      ${kitOf(i) ? `<button class="tog" data-te="kit">Add to ${escapeHtml(kitOf(i).name)}</button>` : ''}
       <button class="tog danger" data-te="remove">Remove${t.qty > 1 ? ` all ${t.qty}` : ''}</button>
     </div>`;
 }
@@ -1049,7 +1267,7 @@ function editorAction(i, b) {
         if ((f === 'power' || f === 'toughness' || f === 'loyalty') && s[f] + d < 0) return null;
         const t = targetFor(i);
         t[f] += d;
-        return `${tokLabel(t)} → ${statLine(t)}`;
+        return `${tokLabel(t)} → ${statLine(t, i)}`;
       });
     }
   }
@@ -1081,28 +1299,24 @@ function editorAction(i, b) {
     list.push(c);
     return `copies ${s.name}`;
   });
-  else if (a === 'save') {
-    const tpl = { kind: s.kind, name: s.name, color: s.color, types: s.types, text: s.text, keywords: [...s.keywords],
-      power: s.power, toughness: s.toughness, loyalty: s.loyalty, sacLife: s.sacLife };
-    const k = JSON.stringify(tpl);
-    if (!myTokens.some(m => JSON.stringify(m) === k)) { myTokens.push(tpl); saveMine(); }
-    b.textContent = 'Saved to My tokens';
-  }
+  else if (a === 'save') { addToList(myTokens, tokTemplate(s)); saveMine(); b.textContent = 'Saved to My tokens'; }
+  else if (a === 'kit') { const kit = kitOf(i); if (kit) { addToList(kit.tokens, tokTemplate(s)); saveKits(); b.textContent = `Added to ${kit.name}`; } }
   else if (a === 'remove') tokAct(i, null, () => { removeStack(i, s); edit[i] = null; return `removes ${tokLabel(s)}`; });
 }
 
 /* Tray */
-function cardHtml(t) {
+function cardHtml(t, i) {
+  const au = auraFor(i, t), kws = allKw(t, au);
   const tags = [];
   if (t.tapped) tags.push('<span class="tag">Tapped</span>');
-  if (t.kind === 'creature' && t.sick && !t.keywords.includes('Haste')) tags.push('<span class="tag">New</span>');
+  if (t.kind === 'creature' && t.sick && !kws.includes('Haste')) tags.push('<span class="tag">New</span>');
   if (t.kind === 'creature' && t.counters) tags.push(`<span class="tag ${t.counters > 0 ? 'plus' : 'minus'}">${t.counters > 0 ? '+' : '−'}${Math.abs(t.counters)}/${t.counters > 0 ? '+' : '−'}${Math.abs(t.counters)}</span>`);
   let corner = '';
   if (t.kind === 'creature') {
-    const cls = effT(t) <= 0 ? 'dead' : (t.tempP || t.tempT) ? 'boost' : '';
-    corner = `<span class="pt ${cls}">${effP(t)}/${effT(t)}</span>`;
+    const cls = effT(t, au) <= 0 ? 'dead' : (t.tempP || t.tempT) ? 'boost' : (au.p || au.t) ? 'anthem' : '';
+    corner = `<span class="pt ${cls}">${effP(t, au)}/${effT(t, au)}</span>`;
   } else if (t.kind === 'planeswalker') corner = `<span class="pt loy">${t.loyalty}</span>`;
-  const desc = t.keywords.length ? t.keywords.join(', ') : t.text;
+  const desc = kws.length ? kws.join(', ') : t.text;
   return `<button class="tok${t.tapped ? ' tapped' : ''}" data-tok="${t.id}" style="--t:${COLORS[t.color] || COLORS.steel}" aria-label="${escapeHtml(tokLabel(t))}. Open to edit.">
     <span class="tn">${escapeHtml(t.name)}</span><span class="tt">${escapeHtml(t.types)}</span>
     ${desc ? `<span class="tk">${escapeHtml(desc)}</span>` : ''}
@@ -1110,19 +1324,23 @@ function cardHtml(t) {
   </button>`;
 }
 function renderTokens(i) {
-  const el = panels[i], list = state.players[i].tokens;
-  el.classList.toggle('has-tokens', list.length > 0);
-  el.querySelector('[data-tray]').hidden = !list.length;
-  if (!list.length) return;
+  const el = panels[i], list = state.players[i].tokens, anthems = state.players[i].anthems;
+  const any = list.length > 0 || anthems.length > 0;
+  el.classList.toggle('has-tokens', any);
+  el.classList.toggle('has-anthems', anthems.length > 0);
+  el.querySelector('[data-tray]').hidden = !any;
+  if (!any) { el.querySelector('[data-cards]').innerHTML = ''; el.querySelector('[data-anths]').innerHTML = ''; return; }
+  el.querySelector('[data-anths]').innerHTML = anthems.map(a =>
+    `<button class="achip" data-anth="${a.id}" aria-label="${escapeHtml(a.name)}, ${escapeHtml(anthSub(a))}. Open to edit.">${escapeHtml(a.name)}<b>${signed(a.p)}/${signed(a.t)}</b></button>`).join('');
   const creatures = list.filter(t => t.kind === 'creature');
   const count = creatures.reduce((n, t) => n + t.qty, 0);
-  const power = creatures.reduce((n, t) => n + t.qty * Math.max(0, effP(t)), 0);
+  const power = creatures.reduce((n, t) => n + t.qty * Math.max(0, effP(t, auraFor(i, t))), 0);
   const others = list.filter(t => t.kind !== 'creature').reduce((n, t) => n + t.qty, 0);
   el.querySelector('[data-tsum]').textContent =
-    [count ? `${count} creature${count > 1 ? 's' : ''} · ${power} power` : '', others ? `${others} other` : ''].filter(Boolean).join(' · ');
+    [count ? `${count} creature${count > 1 ? 's' : ''} · ${power} power` : '', others ? `${others} other` : ''].filter(Boolean).join(' · ') || 'No tokens yet';
   const cards = el.querySelector('[data-cards]');
   const top = cards.scrollTop;
-  cards.innerHTML = list.map(cardHtml).join('');
+  cards.innerHTML = list.map(t => cardHtml(t, i)).join('');
   cards.scrollTop = top;
 }
 
@@ -1183,6 +1401,7 @@ function render() {
     el.querySelectorAll('[data-drawer] .sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.color === p.color)));
     renderTokens(i);
     renderEditor(i);
+    renderAnthem(i);
     el.querySelectorAll('[data-tog]').forEach(b => b.setAttribute('aria-pressed', String(state[b.dataset.tog] === i)));
   });
 
@@ -1246,7 +1465,7 @@ document.getElementById('btn-start').addEventListener('click', () => {
   pushUndo();
   state = newState(state, pick.format, pick.life, first);
   addLog({ p: first, text: 'goes first' });
-  panels.forEach((_, i) => { closeDrawer(i); closePicker(i); closeEditor(i); });
+  panels.forEach((_, i) => { closeDrawer(i); closePicker(i); closeEditor(i); closeAnthem(i); });
   closeSheets(); commit();
   if (random) announce(state.players[first].name, 'goes first');
 });
@@ -1325,7 +1544,11 @@ document.addEventListener('pointerdown', wake, { passive: true });
 /* ---------- Boot ---------- */
 function start(hot) {
   state = (hot && hot.state) || load() || newState(null, 'commander', 40, 0);
-  state.players.forEach(p => { if (!Array.isArray(p.tokens)) p.tokens = []; });
+  state.players.forEach(p => {
+    if (!Array.isArray(p.tokens)) p.tokens = [];
+    if (!Array.isArray(p.anthems)) p.anthems = [];
+    if (p.kit === undefined) p.kit = null;
+  });
   if (hot && hot.undo) undoStack = hot.undo;
   buildPanel(0); buildPanel(1);
   renderBg(0); renderBg(1);

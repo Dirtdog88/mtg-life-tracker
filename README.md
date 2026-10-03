@@ -21,6 +21,10 @@ A two-player Magic: The Gathering life tracker built for an iPad sitting beside 
 - Tokens: creatures, artifacts, enchantments and planeswalkers. Identical tokens group into one card with a count.
   Each token tracks +1/+1 and −1/−1 counters, until-end-of-turn boosts, abilities, creature types, tapped and
   summoning sickness. Passing the turn untaps and clears boosts. Custom tokens can be saved to **My tokens**.
+- Anthems: static boosts (+X/+X and granted abilities) for all creature tokens, one creature type or one color.
+  Matching tokens show the boosted stats automatically.
+- Deck kits: save each deck's tokens and anthems as a kit. The chosen kit appears first in the token picker
+  and carries over between games.
 
 Games and photos are saved on the device in browser storage.
 
