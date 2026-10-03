@@ -152,11 +152,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
 .badge.turn { background: var(--p); color: var(--pbg); border-color: var(--p); }
 
 /* Counter chips along the bottom edge of each half */
-.chips {
+.bottom {
   position: absolute; bottom: 0; left: 0; right: 0; z-index: 2; pointer-events: none;
-  display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
-  padding: 0 16px clamp(10px, 3cqh, 20px);
+  display: flex; flex-direction: column; gap: 8px; padding: 0 12px clamp(10px, 3cqh, 20px);
 }
+.chips { pointer-events: none; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
 .chip {
   pointer-events: auto; display: inline-flex; align-items: center; gap: 7px;
   min-height: 44px; padding: 8px 14px; border-radius: 12px;
@@ -168,6 +168,66 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
 .chip.lethal { border-color: var(--danger); }
 .chip.lethal b { color: var(--danger); }
 .chip.more { color: var(--p); border-color: color-mix(in srgb, var(--p) 40%, transparent); }
+
+/* ---------- Tokens ---------- */
+/* With tokens out, the life total moves up and the tray takes the lower part of the half */
+.player.has-tokens .center, .player.has-tokens .zone { bottom: calc(34cqh + 84px); }
+.player.has-tokens .life { font-size: min(30cqh, 30cqw); }
+.tray {
+  pointer-events: auto; display: flex; flex-direction: column; gap: 6px; padding: 8px;
+  border-radius: 14px; border: 1px solid var(--line); background: rgba(0, 0, 0, .3);
+}
+.tray-head { display: flex; align-items: center; gap: 8px; padding: 0 4px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.tray-head .sum { flex: 1; min-width: 0; }
+.tray-head button {
+  min-height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: none;
+  font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+.tray-head button.armed { color: var(--danger); border-color: var(--danger); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 6px; max-height: 34cqh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.tok {
+  --t: #c6cfda; text-align: left; display: flex; flex-direction: column; gap: 3px; min-height: 96px; min-width: 0;
+  padding: 7px 9px 8px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--t) 35%, transparent);
+  border-top: 4px solid var(--t); background: color-mix(in srgb, var(--t) 10%, rgba(10, 11, 15, .88));
+}
+.tok .tn { font-weight: 700; font-size: 14px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tok .tt { font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tok .tk { font-size: 12px; line-height: 1.25; color: var(--ink); opacity: .85; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tok .tf { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; }
+.tok .tags { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; min-width: 0; }
+.tok .tq { font-family: var(--f-num); font-weight: 700; font-size: 20px; line-height: 1; color: var(--t); }
+.tok .tag { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 6px; border-radius: 6px; background: rgba(255, 255, 255, .08); color: var(--muted); }
+.tok .tag.plus { color: #84d9a4; }
+.tok .tag.minus { color: var(--danger); }
+.tok .pt {
+  flex: none; font-family: var(--f-num); font-weight: 700; font-size: 24px; line-height: 1; padding: 2px 8px; border-radius: 8px;
+  background: rgba(0, 0, 0, .45); border: 1px solid color-mix(in srgb, var(--t) 45%, transparent); font-variant-numeric: tabular-nums;
+}
+.tok .pt.boost { color: var(--warn); }
+.tok .pt.dead { color: var(--danger); }
+.tok .pt.loy { border-radius: 8px 8px 16px 16px; padding: 2px 10px 4px; }
+.tok.tapped { opacity: .55; }
+.lbl { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.sec { display: flex; flex-direction: column; gap: 6px; }
+.ptitle { flex: 1; min-width: 0; font-family: var(--f-title); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: 16px; color: var(--p); }
+.picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.pick {
+  --t: #c6cfda; width: 100%; height: 100%; min-height: 56px; text-align: left; padding: 8px 10px; border-radius: 10px;
+  border: 1px solid var(--line); border-left: 4px solid var(--t); background: rgba(0, 0, 0, .25);
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+}
+.pick strong { font-size: 14px; }
+.pick span { font-size: 12px; color: var(--muted); }
+.pick:active { background: color-mix(in srgb, var(--t) 18%, transparent); }
+.pick-wrap { position: relative; }
+.pick-wrap .pick { padding-right: 40px; }
+.unpick { position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; border-radius: 8px; border: 0; background: rgba(255, 255, 255, .08); color: var(--muted); font-size: 18px; line-height: 1; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field input {
+  height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(0, 0, 0, .3);
+  color: var(--ink); font-family: var(--f-ui); font-size: 16px; -webkit-user-select: text; user-select: text;
+}
+.tog.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
 
 /* Per-player drawer: opens inside the half, so it faces its owner */
 .drawer {
@@ -468,7 +528,7 @@ const COUNTERS = [
 ];
 
 function freshPlayer(name, color, life) {
-  return { name, color, life, poison: 0, cmd: 0, tax: 0, energy: 0, exp: 0, storm: 0 };
+  return { name, color, life, poison: 0, cmd: 0, tax: 0, energy: 0, exp: 0, storm: 0, tokens: [] };
 }
 function newState(prev, formatId, life, first) {
   const p = prev ? prev.players : [{ name: 'Player 1', color: 'blue' }, { name: 'Player 2', color: 'red' }];
@@ -527,7 +587,15 @@ function buildPanel(i) {
         <span class="badge" data-b="monarch" hidden>Monarch</span>
         <span class="badge" data-b="initiative" hidden>Initiative</span>
       </div>
-      <div class="chips" data-chips></div>
+      <div class="bottom">
+        <div class="tray" data-tray hidden>
+          <div class="tray-head"><span class="sum" data-tsum></span><button data-tclear>Clear all</button></div>
+          <div class="cards" data-cards></div>
+        </div>
+        <div class="chips" data-chips></div>
+      </div>
+      <div class="drawer" data-tokpick hidden></div>
+      <div class="drawer" data-tokedit hidden></div>
       <div class="drawer" data-drawer hidden>
         <div class="drawer-head">
           <input id="name-${i}" data-name maxlength="18" autocomplete="off" aria-label="Player name">
@@ -552,8 +620,26 @@ function buildPanel(i) {
   el.querySelectorAll('.zone').forEach(z => bindZone(z, i));
   el.querySelector('[data-open]').addEventListener('click', () => openDrawer(i));
   el.querySelector('[data-close-drawer]').addEventListener('click', () => closeDrawer(i));
-  el.querySelector('[data-chips]').addEventListener('click', e => { if (e.target.closest('.chip')) openDrawer(i); });
-  el.querySelectorAll('.sw').forEach(b => b.addEventListener('click', () => {
+  el.querySelector('[data-chips]').addEventListener('click', e => {
+    const c = e.target.closest('.chip'); if (!c) return;
+    if (c.hasAttribute('data-addtok')) openPicker(i); else openDrawer(i);
+  });
+  el.querySelector('[data-cards]').addEventListener('click', e => {
+    const c = e.target.closest('[data-tok]'); if (c) openEditor(i, c.dataset.tok);
+  });
+  el.querySelector('[data-tclear]').addEventListener('click', e => clearTokens(i, e.currentTarget));
+  const pk = el.querySelector('[data-tokpick]');
+  pk.addEventListener('click', e => { const b = e.target.closest('[data-pk]'); if (b) pickerAction(i, b); });
+  const ed = el.querySelector('[data-tokedit]');
+  ed.addEventListener('click', e => { const b = e.target.closest('[data-te]'); if (b) editorAction(i, b); });
+  ed.addEventListener('input', e => {
+    const f = e.target.dataset.tf; const s = stackOf(i);
+    if (!f || !s) return;
+    s[f] = f === 'name' ? (e.target.value.trim() || 'Token') : e.target.value;
+    save(); renderTokens(i);
+  });
+  ed.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.target.blur(); });
+  el.querySelectorAll('[data-drawer] .sw').forEach(b => b.addEventListener('click', () => {
     state.players[i].color = b.dataset.color; save(); render();
   }));
   el.querySelectorAll('[data-ctr]').forEach(b => bindStep(b, i));
@@ -578,6 +664,7 @@ function buildPanel(i) {
 }
 
 function openDrawer(i) {
+  closePicker(i); closeEditor(i);
   const d = panels[i].querySelector('[data-drawer]');
   panels[i].querySelector('[data-name]').value = state.players[i].name;
   d.hidden = false;
@@ -682,7 +769,13 @@ function passTurn() {
   const from = state.active;
   state.active = 1 - state.active;
   if (state.active === state.first) state.turn += 1;
-  state.players.forEach(p => { p.storm = 0; });
+  state.players.forEach(p => {
+    p.storm = 0;
+    p.tokens.forEach(t => { t.tempP = 0; t.tempT = 0; });   // "until end of turn" wears off
+  });
+  // Untap step for the incoming player; their creatures are no longer summoning sick
+  state.players[state.active].tokens.forEach(t => { t.tapped = false; t.sick = false; });
+  normalize(0); normalize(1);
   addLog({ p: from, text: 'passes the turn' });
   commit();
 }
@@ -695,6 +788,342 @@ function undo() {
   deltaShown[0] = deltaShown[1] = 0;
   renderDelta(0); renderDelta(1);
   commit();
+}
+
+/* ---------- Tokens ---------- */
+const MINE_KEY = 'mtg-duel-mytokens-v1';
+let myTokens = (() => { try { return JSON.parse(localStorage.getItem(MINE_KEY)) || []; } catch (e) { return []; } })();
+function saveMine() { try { localStorage.setItem(MINE_KEY, JSON.stringify(myTokens)); } catch (e) { /* ignore */ } }
+
+const TOKEN_COLOR_NAMES = { white: 'White', blue: 'Blue', black: 'Black', red: 'Red', green: 'Green', gold: 'Multicolor', steel: 'Colorless' };
+const KEYWORDS = ['Flying', 'Trample', 'Lifelink', 'Deathtouch', 'Vigilance', 'Haste', 'First strike', 'Double strike',
+  'Menace', 'Reach', 'Hexproof', 'Indestructible', 'Ward', 'Defender'];
+const KINDS = [['creature', 'Creature'], ['artifact', 'Artifact'], ['enchantment', 'Enchantment'], ['planeswalker', 'Planeswalker']];
+const cr = (name, color, power, toughness, keywords = [], types = `Creature — ${name}`, text = '') =>
+  ({ kind: 'creature', name, color, power, toughness, keywords, types, text });
+const art = (name, text, extra = {}) => ({ kind: 'artifact', name, color: 'steel', types: `Artifact — ${name}`, text, ...extra });
+const ench = (name, types, text) => ({ kind: 'enchantment', name, color: 'steel', types, text });
+const PRESETS = {
+  creatures: [
+    cr('Soldier', 'white', 1, 1), cr('Human', 'white', 1, 1), cr('Spirit', 'white', 1, 1, ['Flying']),
+    cr('Knight', 'white', 2, 2, ['Vigilance']), cr('Angel', 'white', 4, 4, ['Flying']),
+    cr('Bird', 'blue', 1, 1, ['Flying']), cr('Faerie', 'blue', 1, 1, ['Flying']), cr('Drake', 'blue', 2, 2, ['Flying']),
+    cr('Zombie', 'black', 2, 2), cr('Rat', 'black', 1, 1), cr('Vampire', 'black', 1, 1, ['Lifelink']),
+    cr('Goblin', 'red', 1, 1), cr('Dragon', 'red', 5, 5, ['Flying']),
+    cr('Beast', 'green', 3, 3), cr('Wolf', 'green', 2, 2), cr('Saproling', 'green', 1, 1),
+    cr('Elf Warrior', 'green', 1, 1), cr('Insect', 'green', 1, 1), cr('Plant', 'green', 0, 1),
+    cr('Thopter', 'steel', 1, 1, ['Flying'], 'Artifact Creature — Thopter'), cr('Servo', 'steel', 1, 1, [], 'Artifact Creature — Servo'),
+    cr('Eldrazi Spawn', 'steel', 0, 1, [], 'Creature — Eldrazi Spawn', 'Sacrifice: Add {C}.')
+  ],
+  others: [
+    art('Treasure', 'T, Sacrifice: Add one mana of any color.'),
+    art('Food', '{2}, T, Sacrifice: You gain 3 life.', { sacLife: 3 }),
+    art('Clue', '{2}, Sacrifice: Draw a card.'),
+    art('Blood', '{1}, T, Discard a card, Sacrifice: Draw a card.'),
+    art('Map', '{1}, T, Sacrifice: Target creature you control explores. Sorcery speed.'),
+    art('Powerstone', "T: Add {C}. This mana can't be spent to cast nonartifact spells."),
+    art('Gold', 'Sacrifice: Add one mana of any color.'),
+    art('Junk', 'T, Sacrifice: Exile the top card of your library. You may play it this turn. Sorcery speed.'),
+    art('Incubator', '{2}: Transform into a 0/0 Phyrexian artifact creature. Keeps its +1/+1 counters.'),
+    ench('Shard', 'Enchantment — Shard', '{2}, Sacrifice: Scry 1, then draw a card.'),
+    ench('Monster Role', 'Enchantment — Aura Role', 'Enchanted creature gets +1/+1 and has trample.'),
+    ench('Wicked Role', 'Enchantment — Aura Role', 'Enchanted creature gets +1/+1. When this goes to a graveyard, each opponent loses 1 life.'),
+    ench('Young Hero Role', 'Enchantment — Aura Role', 'Whenever enchanted creature attacks, if its toughness is 3 or less, put a +1/+1 counter on it.')
+  ],
+  walkers: [
+    { kind: 'planeswalker', name: 'Jace', color: 'blue', types: 'Planeswalker — Jace', loyalty: 3, text: 'Copy of Jace, Cunning Castaway. Not legendary.' },
+    { kind: 'planeswalker', name: 'Planeswalker', color: 'gold', types: 'Planeswalker', loyalty: 3, text: '' }
+  ]
+};
+
+const edit = [null, null];        // open token editor per player: { id, scope: 'all' | 'one' }
+const pickQty = [1, 1];
+let uidN = 0;
+const uid = () => `t${Date.now().toString(36)}${(uidN++).toString(36)}`;
+
+function makeToken(tpl, qty) {
+  return {
+    id: uid(), kind: tpl.kind, name: tpl.name, color: tpl.color || 'steel', types: tpl.types || '', text: tpl.text || '',
+    keywords: [...(tpl.keywords || [])], power: tpl.power || 0, toughness: tpl.toughness || 0, loyalty: tpl.loyalty || 0,
+    sacLife: tpl.sacLife || 0, counters: 0, tempP: 0, tempT: 0, qty, tapped: false, sick: tpl.kind === 'creature'
+  };
+}
+const effP = t => t.power + t.counters + t.tempP;
+const effT = t => t.toughness + t.counters + t.tempT;
+const tokLabel = t => `${t.name}${t.qty > 1 ? ` ×${t.qty}` : ''}`;
+function statLine(t) {
+  if (t.kind === 'creature') {
+    const c = t.counters;
+    return `${effP(t)}/${effT(t)}${c ? ` (${c > 0 ? '+' : ''}${c}/${c > 0 ? '+' : ''}${c} counters)` : ''}`;
+  }
+  return t.kind === 'planeswalker' ? `loyalty ${t.loyalty}` : '';
+}
+// Stacks that end up identical (say, after untapping) merge back into one card.
+function sig(t) {
+  return JSON.stringify([t.kind, t.name, t.color, t.types, t.text, [...t.keywords].sort(), t.power, t.toughness,
+    t.loyalty, t.sacLife, t.counters, t.tempP, t.tempT, t.tapped, t.sick]);
+}
+function normalize(i) {
+  const pl = state.players[i];
+  const out = [], bySig = new Map();
+  pl.tokens.forEach(t => {
+    const k = sig(t), ex = bySig.get(k);
+    if (ex) { ex.qty += t.qty; if (edit[i] && edit[i].id === t.id) edit[i].id = ex.id; }
+    else { bySig.set(k, t); out.push(t); }
+  });
+  pl.tokens = out;
+}
+function stackOf(i) { return edit[i] ? state.players[i].tokens.find(t => t.id === edit[i].id) : null; }
+// With "Just one" selected, the change splits one token off the group and the editor follows it.
+function targetFor(i) {
+  const list = state.players[i].tokens, s = stackOf(i);
+  if (s && edit[i].scope === 'one' && s.qty > 1) {
+    const c = JSON.parse(JSON.stringify(s));
+    c.id = uid(); c.qty = 1; s.qty -= 1;
+    list.splice(list.indexOf(s) + 1, 0, c);
+    edit[i] = { id: c.id, scope: 'all' };
+    return c;
+  }
+  return s;
+}
+function removeStack(i, s) { const l = state.players[i].tokens; const k = l.indexOf(s); if (k >= 0) l.splice(k, 1); }
+
+// One undoable step per action; repeated taps on the same stepper within 2 s fold into one step and one log line.
+function tokAct(i, groupKey, fn) {
+  const now = Date.now();
+  let entry, fresh = false;
+  if (groupKey && burst && burst.p === i && burst.key === groupKey && now - burst.t < 2000 && state.log[state.log.length - 1] === burst.entry) {
+    burst.t = now; entry = burst.entry;
+  } else {
+    pushUndo(); fresh = true;
+    entry = addLog({ p: i, text: '' });
+    burst = groupKey ? { p: i, key: groupKey, t: now, entry } : null;
+  }
+  const text = fn();
+  if (text === null && fresh) { state.log.pop(); undoStack.pop(); burst = null; return; }
+  if (text) entry.text = text;
+  normalize(i);
+  commit();
+}
+
+function createTokens(i, tpl, qty, openAfter) {
+  closePicker(i);
+  tokAct(i, null, () => {
+    const t = makeToken(tpl, qty);
+    state.players[i].tokens.push(t);
+    if (openAfter) edit[i] = { id: t.id, scope: 'all' };
+    return `creates ${qty} ${tpl.name} token${qty > 1 ? 's' : ''}`;
+  });
+  pickQty[i] = 1;
+}
+
+function clearTokens(i, btn) {
+  if (!btn.classList.contains('armed')) {
+    btn.classList.add('armed'); btn.textContent = 'Tap to confirm';
+    setTimeout(() => { btn.classList.remove('armed'); btn.textContent = 'Clear all'; }, 3000);
+    return;
+  }
+  btn.classList.remove('armed'); btn.textContent = 'Clear all';
+  closeEditor(i);
+  tokAct(i, null, () => { state.players[i].tokens = []; return 'clears all tokens'; });
+}
+
+/* Picker */
+function tplSub(t) {
+  if (t.kind === 'creature') return `${t.power}/${t.toughness}${t.keywords && t.keywords.length ? ' · ' + t.keywords.join(', ') : ''}`;
+  if (t.kind === 'planeswalker') return `Loyalty ${t.loyalty}`;
+  return t.types || t.kind;
+}
+const pickBtn = (t, attrs) => `<button class="pick" style="--t:${COLORS[t.color] || COLORS.steel}" ${attrs}><strong>${escapeHtml(t.name)}</strong><span>${escapeHtml(tplSub(t))}</span></button>`;
+function openPicker(i) {
+  closeDrawer(i); closeEditor(i);
+  const el = panels[i].querySelector('[data-tokpick]');
+  const group = (title, key) => `<div class="sec"><div class="lbl">${title}</div><div class="picks">${PRESETS[key].map((t, n) => pickBtn(t, `data-pk="preset" data-g="${key}" data-n="${n}"`)).join('')}</div></div>`;
+  const mine = myTokens.length ? `<div class="sec"><div class="lbl">My tokens</div><div class="picks">${myTokens.map((t, n) =>
+    `<div class="pick-wrap">${pickBtn(t, `data-pk="mine" data-n="${n}"`)}<button class="unpick" data-pk="unmine" data-n="${n}" aria-label="Remove ${escapeHtml(t.name)} from My tokens">×</button></div>`).join('')}</div></div>` : '';
+  el.innerHTML = `
+    <div class="drawer-head"><span class="ptitle">Add tokens</span><button class="done" data-pk="close">Close</button></div>
+    <div class="row"><div class="rl"><strong>How many</strong><small>Created together as one group</small></div>
+      <button class="step" data-pk="q" data-d="-1" aria-label="Fewer">−</button><span class="rv" data-pqv>${pickQty[i]}</span>
+      <button class="step" data-pk="q" data-d="1" aria-label="More">+</button></div>
+    ${mine}
+    ${group('Creatures', 'creatures')}
+    ${group('Artifacts and enchantments', 'others')}
+    ${group('Planeswalkers', 'walkers')}
+    <div class="toggles"><button class="tog" data-pk="custom">Make your own</button></div>`;
+  el.hidden = false; el.scrollTop = 0;
+}
+function closePicker(i) { panels[i].querySelector('[data-tokpick]').hidden = true; }
+function pickerAction(i, b) {
+  const a = b.dataset.pk, n = Number(b.dataset.n);
+  if (a === 'close') closePicker(i);
+  else if (a === 'q') {
+    pickQty[i] = Math.min(99, Math.max(1, pickQty[i] + Number(b.dataset.d)));
+    panels[i].querySelector('[data-pqv]').textContent = pickQty[i];
+  }
+  else if (a === 'preset') createTokens(i, PRESETS[b.dataset.g][n], pickQty[i]);
+  else if (a === 'mine') createTokens(i, myTokens[n], pickQty[i]);
+  else if (a === 'unmine') { myTokens.splice(n, 1); saveMine(); openPicker(i); }
+  else if (a === 'custom') createTokens(i, { kind: 'creature', name: 'Token', color: 'steel', power: 1, toughness: 1, types: 'Creature' }, pickQty[i], true);
+}
+
+/* Editor */
+function openEditor(i, id) {
+  closeDrawer(i); closePicker(i);
+  edit[i] = { id, scope: 'all' };
+  renderEditor(i);
+  panels[i].querySelector('[data-tokedit]').scrollTop = 0;
+}
+function closeEditor(i) {
+  edit[i] = null;
+  const ed = panels[i].querySelector('[data-tokedit]');
+  const a = document.activeElement; if (a && ed.contains(a)) a.blur();
+  ed.hidden = true;
+}
+function editorHtml(i, t) {
+  const isC = t.kind === 'creature', isPW = t.kind === 'planeswalker';
+  const num = (f, label, note, val) => `<div class="row"><div class="rl"><strong>${label}</strong>${note ? `<small>${note}</small>` : ''}</div>
+    <button class="step" data-te="num" data-f="${f}" data-d="-1" aria-label="Lower ${label}">−</button><span class="rv">${val}</span>
+    <button class="step" data-te="num" data-f="${f}" data-d="1" aria-label="Raise ${label}">+</button></div>`;
+  const tog = (attrs, label, on) => `<button class="tog" ${attrs} aria-pressed="${!!on}">${label}</button>`;
+  const rows = [num('qty', 'Count', 'Tokens in this group', t.qty)];
+  if (isC) rows.push(
+    num('power', 'Base power', 'As created', t.power),
+    num('toughness', 'Base toughness', 'As created', t.toughness),
+    num('counters', t.counters < 0 ? '−1/−1 counters' : '+1/+1 counters', 'They cancel each other out', Math.abs(t.counters)),
+    num('tempP', 'Power this turn', 'Clears when the turn passes', (t.tempP > 0 ? '+' : '') + t.tempP),
+    num('tempT', 'Toughness this turn', 'Clears when the turn passes', (t.tempT > 0 ? '+' : '') + t.tempT));
+  if (isPW) rows.push(num('loyalty', 'Loyalty', t.loyalty === 0 ? 'At 0 it goes to the graveyard' : 'Loyalty counters', t.loyalty));
+  const swatches = Object.keys(COLORS).map(c =>
+    `<button class="sw" data-te="color" data-v="${c}" style="--c:${COLORS[c]}" aria-label="${TOKEN_COLOR_NAMES[c]}" aria-pressed="${t.color === c}"></button>`).join('');
+  return `
+    <div class="drawer-head">
+      <input id="tn-${i}" data-tf="name" value="${escapeHtml(t.name)}" maxlength="28" autocomplete="off" aria-label="Token name">
+      <button class="done" data-te="done">Done</button>
+    </div>
+    ${isC ? `<div class="lbl">Now ${effP(t)}/${effT(t)}${effT(t) <= 0 ? ' · dies at 0 toughness' : ''}</div>` : ''}
+    ${t.qty > 1 ? `<div class="toggles"><span class="lbl">Changes apply to</span>
+      ${tog('data-te="scope" data-v="all"', `All ${t.qty}`, edit[i].scope === 'all')}${tog('data-te="scope" data-v="one"', 'Just one', edit[i].scope === 'one')}</div>` : ''}
+    <div class="rows">${rows.join('')}</div>
+    <div class="toggles">${tog('data-te="tapped"', 'Tapped', t.tapped)}${isC ? tog('data-te="sick"', 'Summoning sick', t.sick) : ''}</div>
+    ${isC ? `<div class="sec"><div class="lbl">Abilities</div><div class="toggles">${KEYWORDS.map(k => tog(`data-te="kw" data-v="${k}"`, k, t.keywords.includes(k))).join('')}</div></div>` : ''}
+    <div class="field"><label class="lbl" for="ty-${i}">Type line</label><input id="ty-${i}" data-tf="types" value="${escapeHtml(t.types)}" autocomplete="off" placeholder="Creature — Human Soldier"></div>
+    <div class="field"><label class="lbl" for="tx-${i}">Other abilities</label><input id="tx-${i}" data-tf="text" value="${escapeHtml(t.text)}" autocomplete="off" placeholder="Rules text or notes"></div>
+    <div class="sec"><div class="lbl">Card type</div><div class="toggles">${KINDS.map(([k, l]) => tog(`data-te="kind" data-v="${k}"`, l, t.kind === k)).join('')}</div></div>
+    <div class="swatches"><span class="label">Color</span>${swatches}</div>
+    <div class="toggles">
+      <button class="tog" data-te="sac">Sacrifice one${t.sacLife ? ` · gain ${t.sacLife} life` : ''}</button>
+      <button class="tog" data-te="copy">Copy token</button>
+      <button class="tog" data-te="save">Save to My tokens</button>
+      <button class="tog danger" data-te="remove">Remove${t.qty > 1 ? ` all ${t.qty}` : ''}</button>
+    </div>`;
+}
+function renderEditor(i) {
+  const ed = panels[i].querySelector('[data-tokedit]');
+  const s = stackOf(i);
+  if (!s) { edit[i] = null; ed.hidden = true; return; }
+  // Leave the panel alone while someone is typing in it (the other player may be tapping life meanwhile)
+  const a = document.activeElement;
+  if (!ed.hidden && a && a.tagName === 'INPUT' && ed.contains(a)) return;
+  if (s.qty <= 1) edit[i].scope = 'all';
+  const top = ed.scrollTop;
+  ed.innerHTML = editorHtml(i, s);
+  ed.hidden = false; ed.scrollTop = top;
+}
+function editorAction(i, b) {
+  const a = b.dataset.te, s = stackOf(i);
+  if (!s) { closeEditor(i); return; }
+  const list = state.players[i].tokens;
+  if (a === 'done') closeEditor(i);
+  else if (a === 'scope') { edit[i].scope = b.dataset.v; renderEditor(i); }
+  else if (a === 'num') {
+    const f = b.dataset.f, d = Number(b.dataset.d);
+    if (f === 'qty') {
+      tokAct(i, `qty:${s.id}`, () => {
+        s.qty += d;
+        if (s.qty <= 0) { removeStack(i, s); edit[i] = null; return `removes ${s.name}`; }
+        return `${s.name}: ${s.qty} in play`;
+      });
+    } else {
+      tokAct(i, `${f}:${edit[i].scope}:${s.id}`, () => {
+        if ((f === 'power' || f === 'toughness' || f === 'loyalty') && s[f] + d < 0) return null;
+        const t = targetFor(i);
+        t[f] += d;
+        return `${tokLabel(t)} → ${statLine(t)}`;
+      });
+    }
+  }
+  else if (a === 'kw') tokAct(i, null, () => {
+    const t = targetFor(i), k = b.dataset.v, has = t.keywords.includes(k);
+    t.keywords = has ? t.keywords.filter(x => x !== k) : [...t.keywords, k];
+    return `${tokLabel(t)} ${has ? 'loses' : 'gains'} ${k.toLowerCase()}`;
+  });
+  else if (a === 'tapped') tokAct(i, null, () => { const t = targetFor(i); t.tapped = !t.tapped; return `${t.tapped ? 'taps' : 'untaps'} ${tokLabel(t)}`; });
+  else if (a === 'sick') tokAct(i, null, () => { const t = targetFor(i); t.sick = !t.sick; return `${tokLabel(t)} ${t.sick ? 'is summoning sick' : 'can attack'}`; });
+  else if (a === 'kind') tokAct(i, null, () => {
+    const k = b.dataset.v; if (s.kind === k) return null;
+    s.kind = k;
+    if (k === 'planeswalker' && !s.loyalty) s.loyalty = 3;
+    if (k !== 'creature') s.sick = false;
+    return `${s.name} is now a${k === 'artifact' || k === 'enchantment' ? 'n' : ''} ${k}`;
+  });
+  else if (a === 'color') tokAct(i, null, () => { if (s.color === b.dataset.v) return null; s.color = b.dataset.v; return `${s.name} is now ${TOKEN_COLOR_NAMES[s.color].toLowerCase()}`; });
+  else if (a === 'sac') tokAct(i, null, () => {
+    s.qty -= 1;
+    let txt = `sacrifices a ${s.name}`;
+    if (s.sacLife) { state.players[i].life += s.sacLife; flashDelta(i, s.sacLife); txt += ` and gains ${s.sacLife} life`; }
+    if (s.qty <= 0) { removeStack(i, s); edit[i] = null; }
+    return txt;
+  });
+  else if (a === 'copy') tokAct(i, null, () => {
+    const c = JSON.parse(JSON.stringify(s));
+    Object.assign(c, { id: uid(), qty: 1, counters: 0, tempP: 0, tempT: 0, tapped: false, sick: s.kind === 'creature' });
+    list.push(c);
+    return `copies ${s.name}`;
+  });
+  else if (a === 'save') {
+    const tpl = { kind: s.kind, name: s.name, color: s.color, types: s.types, text: s.text, keywords: [...s.keywords],
+      power: s.power, toughness: s.toughness, loyalty: s.loyalty, sacLife: s.sacLife };
+    const k = JSON.stringify(tpl);
+    if (!myTokens.some(m => JSON.stringify(m) === k)) { myTokens.push(tpl); saveMine(); }
+    b.textContent = 'Saved to My tokens';
+  }
+  else if (a === 'remove') tokAct(i, null, () => { removeStack(i, s); edit[i] = null; return `removes ${tokLabel(s)}`; });
+}
+
+/* Tray */
+function cardHtml(t) {
+  const tags = [];
+  if (t.tapped) tags.push('<span class="tag">Tapped</span>');
+  if (t.kind === 'creature' && t.sick && !t.keywords.includes('Haste')) tags.push('<span class="tag">New</span>');
+  if (t.kind === 'creature' && t.counters) tags.push(`<span class="tag ${t.counters > 0 ? 'plus' : 'minus'}">${t.counters > 0 ? '+' : '−'}${Math.abs(t.counters)}/${t.counters > 0 ? '+' : '−'}${Math.abs(t.counters)}</span>`);
+  let corner = '';
+  if (t.kind === 'creature') {
+    const cls = effT(t) <= 0 ? 'dead' : (t.tempP || t.tempT) ? 'boost' : '';
+    corner = `<span class="pt ${cls}">${effP(t)}/${effT(t)}</span>`;
+  } else if (t.kind === 'planeswalker') corner = `<span class="pt loy">${t.loyalty}</span>`;
+  const desc = t.keywords.length ? t.keywords.join(', ') : t.text;
+  return `<button class="tok${t.tapped ? ' tapped' : ''}" data-tok="${t.id}" style="--t:${COLORS[t.color] || COLORS.steel}" aria-label="${escapeHtml(tokLabel(t))}. Open to edit.">
+    <span class="tn">${escapeHtml(t.name)}</span><span class="tt">${escapeHtml(t.types)}</span>
+    ${desc ? `<span class="tk">${escapeHtml(desc)}</span>` : ''}
+    <span class="tf"><span class="tags">${t.qty > 1 ? `<span class="tq">×${t.qty}</span>` : ''}${tags.join('')}</span>${corner}</span>
+  </button>`;
+}
+function renderTokens(i) {
+  const el = panels[i], list = state.players[i].tokens;
+  el.classList.toggle('has-tokens', list.length > 0);
+  el.querySelector('[data-tray]').hidden = !list.length;
+  if (!list.length) return;
+  const creatures = list.filter(t => t.kind === 'creature');
+  const count = creatures.reduce((n, t) => n + t.qty, 0);
+  const power = creatures.reduce((n, t) => n + t.qty * Math.max(0, effP(t)), 0);
+  const others = list.filter(t => t.kind !== 'creature').reduce((n, t) => n + t.qty, 0);
+  el.querySelector('[data-tsum]').textContent =
+    [count ? `${count} creature${count > 1 ? 's' : ''} · ${power} power` : '', others ? `${others} other` : ''].filter(Boolean).join(' · ');
+  const cards = el.querySelector('[data-cards]');
+  const top = cards.scrollTop;
+  cards.innerHTML = list.map(cardHtml).join('');
+  cards.scrollTop = top;
 }
 
 /* ---------- Rendering ---------- */
@@ -740,7 +1169,7 @@ function render() {
         const cls = c.lethal && v >= c.lethal ? 'lethal' : c.near && v >= c.near ? 'near' : '';
         return `<button class="chip ${cls}">${c.key === 'cmd' ? 'Cmdr' : c.label}<b>${v}</b></button>`;
       });
-    chips.push('<button class="chip more">Counters</button>');
+    chips.push('<button class="chip more" data-addtok>+ Token</button>', '<button class="chip more">Counters</button>');
     el.querySelector('[data-chips]').innerHTML = chips.join('');
 
     COUNTERS.forEach(c => {
@@ -751,7 +1180,9 @@ function render() {
       row.classList.toggle('lethal', !!c.lethal && v >= c.lethal);
       row.classList.toggle('near', !!c.near && v >= c.near && !(c.lethal && v >= c.lethal));
     });
-    el.querySelectorAll('.sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.color === p.color)));
+    el.querySelectorAll('[data-drawer] .sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.color === p.color)));
+    renderTokens(i);
+    renderEditor(i);
     el.querySelectorAll('[data-tog]').forEach(b => b.setAttribute('aria-pressed', String(state[b.dataset.tog] === i)));
   });
 
@@ -815,7 +1246,7 @@ document.getElementById('btn-start').addEventListener('click', () => {
   pushUndo();
   state = newState(state, pick.format, pick.life, first);
   addLog({ p: first, text: 'goes first' });
-  panels.forEach((_, i) => closeDrawer(i));
+  panels.forEach((_, i) => { closeDrawer(i); closePicker(i); closeEditor(i); });
   closeSheets(); commit();
   if (random) announce(state.players[first].name, 'goes first');
 });
@@ -894,6 +1325,7 @@ document.addEventListener('pointerdown', wake, { passive: true });
 /* ---------- Boot ---------- */
 function start(hot) {
   state = (hot && hot.state) || load() || newState(null, 'commander', 40, 0);
+  state.players.forEach(p => { if (!Array.isArray(p.tokens)) p.tokens = []; });
   if (hot && hot.undo) undoStack = hot.undo;
   buildPanel(0); buildPanel(1);
   renderBg(0); renderBg(1);
