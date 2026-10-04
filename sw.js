@@ -1,5 +1,5 @@
 // Caches the app so it opens with no connection. Bump VERSION when shipping changes.
-const VERSION = 'v5';
+const VERSION = 'v6';
 const APP = `life-app-${VERSION}`;
 const FONTS = 'life-fonts';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];

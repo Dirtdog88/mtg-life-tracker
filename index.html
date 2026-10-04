@@ -111,13 +111,15 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
 .zone.pressed .glyph { color: var(--p); transform: scale(1.12); }
 
 .center {
-  position: absolute; inset: 0; pointer-events: none;
+  position: absolute; inset: 0; top: var(--hh, 0px); bottom: var(--bh, 0px); pointer-events: none;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .life-wrap { position: relative; display: flex; align-items: center; }
 .life {
   font-family: var(--f-num); font-weight: 700; line-height: .82; letter-spacing: -.01em;
-  font-size: min(50cqh, 36cqw); font-variant-numeric: tabular-nums; color: var(--ink);
+  /* Fits the space above the tray and chips (--bh is measured in script) */
+  font-size: max(44px, min(50cqh, 36cqw, calc((100cqh - var(--bh, 0px) - var(--hh, 0px) - 24px) * .8)));
+  font-variant-numeric: tabular-nums; color: var(--ink);
   text-shadow: 0 4px 30px color-mix(in srgb, var(--p) 30%, transparent);
 }
 .delta {
@@ -126,6 +128,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
   opacity: 0; transition: opacity .25s; font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .delta.show { opacity: 1; }
+/* No room beside the number (three-digit or negative life): sit above its right edge instead */
+.delta.above { left: auto; right: 0; top: auto; bottom: 100%; margin: 0 0 .1em; }
 .delta.neg { color: var(--danger); }
 .out {
   margin-top: 1.5cqh; font-family: var(--f-title); font-weight: 700; letter-spacing: .14em;
@@ -165,14 +169,21 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
 }
 .chip b { font-family: var(--f-num); font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: 0; line-height: 1; }
 .chip.near b { color: var(--warn); }
+/* Small halves (phones): compact chips, and chip rows scroll sideways instead of stacking up */
+@container (max-width: 520px) {
+  .chip { min-height: 38px; padding: 5px 10px; font-size: 11px; gap: 5px; border-radius: 10px; flex: none; }
+  .chip b { font-size: 18px; }
+  .face .chips, .face .anths { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; pointer-events: auto; scrollbar-width: none; gap: 6px; }
+  .chips::-webkit-scrollbar, .anths::-webkit-scrollbar { display: none; }
+  .face .achip { flex: none; }
+}
 .chip.lethal { border-color: var(--danger); }
 .chip.lethal b { color: var(--danger); }
 .chip.more { color: var(--p); border-color: color-mix(in srgb, var(--p) 40%, transparent); }
 
 /* ---------- Tokens ---------- */
 /* With tokens out, the life total moves up and the tray takes the lower part of the half */
-.player.has-tokens .center, .player.has-tokens .zone { bottom: calc(34cqh + 84px); }
-.player.has-tokens .life { font-size: min(30cqh, 30cqw); }
+.zone { bottom: var(--bh, 0px); padding-top: var(--hh, 0px); }
 .tray {
   pointer-events: auto; display: flex; flex-direction: column; gap: 6px; padding: 8px;
   border-radius: 14px; border: 1px solid var(--line); background: rgba(0, 0, 0, .3);
@@ -239,7 +250,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
 .tog.armed { color: var(--danger); border-color: var(--danger); }
 .tok .pt.anthem { color: #84d9a4; }
 .anths { display: flex; gap: 6px; flex-wrap: wrap; }
-.player.has-anthems .cards { max-height: calc(34cqh - 42px); }
 .achip {
   min-height: 34px; padding: 4px 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px;
   border: 1px solid color-mix(in srgb, var(--p) 50%, transparent); background: color-mix(in srgb, var(--p) 12%, transparent);
@@ -380,6 +390,12 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
 .empty { color: var(--muted); font-size: 14px; padding: 12px 0; }
 
 /* Mirrored announcement: same result, readable from both seats */
+.toast {
+  position: fixed; z-index: 40; left: 50%; top: calc(12px + env(safe-area-inset-top, 0px)); transform: translateX(-50%);
+  max-width: min(520px, calc(100% - 32px)); padding: 12px 16px; border-radius: 12px;
+  background: var(--strip); border: 1px solid var(--danger); color: var(--ink); font-size: 14px; font-weight: 600;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
+}
 .announce { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; background: var(--scrim); }
 .announce .half { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; padding: 16px; }
 .announce b { font-family: var(--f-num); font-weight: 700; font-size: clamp(64px, 16vh, 160px); line-height: .9; color: var(--ink); }
@@ -471,6 +487,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
     <div class="sheet-actions"><button class="btn" data-close>Close</button></div>
   </div>
 </div>
+
+<div class="toast" id="toast" role="status" hidden></div>
 
 <div class="announce" id="announce" hidden>
   <div class="half"><b data-a="big"></b><span data-a="small"></span></div>
@@ -572,7 +590,37 @@ function load() {
   } catch (e) { /* storage unavailable */ }
   return null;
 }
-function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } }
+const UNDO_KEY = 'mtg-duel-undo-v1';
+let toastTimer = null, lastToast = 0;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 5000);
+}
+function storageFull() {
+  if (Date.now() - lastToast < 15000) return;
+  lastToast = Date.now();
+  toast("Couldn't save. The iPad's storage for this app is full. Removing a background photo frees space.");
+}
+let undoSaveTimer = null;
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { storageFull(); }
+  // Undo history is saved a moment later so fast tapping stays smooth
+  clearTimeout(undoSaveTimer);
+  undoSaveTimer = setTimeout(() => {
+    try { localStorage.setItem(UNDO_KEY, JSON.stringify(undoStack.slice(-40))); } catch (e) { /* history is a convenience */ }
+  }, 400);
+}
+function flushUndo() {
+  clearTimeout(undoSaveTimer);
+  try { localStorage.setItem(UNDO_KEY, JSON.stringify(undoStack.slice(-40))); } catch (e) { /* ignore */ }
+}
+// iPadOS may close the app while it's in the background: save undo history as it leaves the screen
+addEventListener('pagehide', flushUndo);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushUndo(); });
+function loadUndo() {
+  try { const u = JSON.parse(localStorage.getItem(UNDO_KEY)); return Array.isArray(u) ? u : []; } catch (e) { return []; }
+}
 
 let state;
 let undoStack = [];
@@ -679,6 +727,8 @@ function buildPanel(i) {
   pk.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-kitname]')) { e.preventDefault(); saveKitName(i); } });
   const ed = el.querySelector('[data-tokedit]');
   ed.addEventListener('click', e => { const b = e.target.closest('[data-te]'); if (b) editorAction(i, b); });
+  // A finished rename (or type line edit) can make two groups identical: merge them then, not mid-typing
+  ed.addEventListener('change', e => { if (e.target.dataset.tf && stackOf(i)) { normalize(i); commit(); } });
   ed.addEventListener('input', e => {
     const f = e.target.dataset.tf; const s = stackOf(i);
     if (!f || !s) return;
@@ -758,16 +808,21 @@ function bindStep(btn, i) {
 }
 
 /* ---------- State changes ---------- */
-function snapshot() { return JSON.stringify(state); }
-function pushUndo() {
-  undoStack.push(snapshot());
+// Snapshots leave out the log (it only grows) and remember where it ended, which keeps them small enough to save.
+function snapshot() {
+  const { log, ...rest } = state;
+  return JSON.stringify({ ...rest, logEnd: (state.logBase || 0) + log.length });
+}
+// `full` keeps the whole log in the snapshot: needed before a new game, which starts a fresh log
+function pushUndo(full) {
+  undoStack.push(full ? JSON.stringify(state) : snapshot());
   if (undoStack.length > 150) undoStack.shift();
   burst = null;
 }
 function addLog(entry) {
   entry.turn = state.turn; entry.at = Date.now();
   state.log.push(entry);
-  if (state.log.length > 500) state.log.shift();
+  if (state.log.length > 500) { state.log.shift(); state.logBase = (state.logBase || 0) + 1; }
   return entry;
 }
 function commit() { save(); render(); }
@@ -830,7 +885,14 @@ function passTurn() {
 function undo() {
   const prev = undoStack.pop();
   if (!prev) return;
-  state = JSON.parse(prev);
+  const snap = JSON.parse(prev);
+  if (!Array.isArray(snap.log)) {
+    const base = state.logBase || 0;
+    snap.log = state.log.slice(0, Math.max(0, (snap.logEnd || 0) - base));
+    snap.logBase = base;
+  }
+  delete snap.logEnd;
+  state = snap;
   burst = null;
   deltaShown[0] = deltaShown[1] = 0;
   renderDelta(0); renderDelta(1);
@@ -909,10 +971,21 @@ const ANTHEM_PRESETS = [
   { name: 'Tribal lord', p: 1, t: 1, keywords: [], mode: 'type', value: 'Goblin' }
 ];
 const escRe = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-// "Goblin" also matches "Goblins"; several words match if any one of them does
+// Singular forms a typed word could mean: Goblins → Goblin, Elves → Elf, Faeries → Faerie, Wolves → Wolf
+const IRREGULAR = { men: 'man', women: 'woman', mice: 'mouse', geese: 'goose', people: 'person', children: 'child', teeth: 'tooth' };
+function stems(w) {
+  const l = w.toLowerCase(), out = new Set([l]);
+  if (IRREGULAR[l]) out.add(IRREGULAR[l]);
+  if (l.endsWith('ves')) { out.add(l.slice(0, -3) + 'f'); out.add(l.slice(0, -3) + 'fe'); }
+  if (l.endsWith('ies')) out.add(l.slice(0, -3) + 'y');
+  if (l.endsWith('es')) out.add(l.slice(0, -2));
+  if (l.endsWith('s')) out.add(l.slice(0, -1));
+  return [...out].filter(Boolean);
+}
+// Several words match if any one of them does; each also matches its own plural
 function typeMatch(text, value) {
   return value.split(/[\s,]+/).filter(Boolean).some(w =>
-    new RegExp(`\\b${escRe(w.replace(/s$/i, ''))}s?\\b`, 'i').test(text));
+    stems(w).some(st => new RegExp(`\\b${escRe(st)}(?:s|es)?\\b`, 'i').test(text)));
 }
 function anthemApplies(a, t) {
   if (t.kind !== 'creature') return false;
@@ -987,7 +1060,8 @@ function empowerJace(i, n) {
   closePicker(i);
   tokAct(i, null, () => {
     const list = state.players[i].tokens;
-    let j = list.find(isJace), made = false;
+    // Prefer the Jace with ability buttons; Jace tokens from before this feature are left alone
+    let j = list.find(t => isJace(t) && t.abilities && t.abilities.length), made = false;
     if (!j) { j = makeToken(JACE, 1); list.push(j); made = true; }
     j = splitOne(i, j);
     j.loyalty += n;
@@ -1106,9 +1180,9 @@ function openPicker(i, keepScroll) {
   const mine = myTokens.length ? `<div class="sec"><div class="lbl">My tokens</div><div class="picks">${myTokens.map((t, n) =>
     `<div class="pick-wrap">${pickBtn(t, `data-pk="mine" data-n="${n}"`)}<button class="unpick" data-pk="unmine" data-n="${n}" aria-label="Remove ${escapeHtml(t.name)} from My tokens">×</button></div>`).join('')}</div></div>` : '';
   const anths = `<div class="sec"><div class="lbl">Anthems</div><div class="picks">${ANTHEM_PRESETS.map((a, n) => anthBtn(a, `data-pk="anth" data-n="${n}"`)).join('')}</div></div>`;
-  const jace = state.players[i].tokens.find(isJace);
+  const jace = state.players[i].tokens.find(t => isJace(t) && t.abilities && t.abilities.length);
   const empower = `<div class="sec"><div class="lbl">Empower Jace</div>
-    <p class="hint">${jace ? `Adds loyalty to your Jace (now ${jace.loyalty}).` : 'Creates your Jace token (−1: Surveil 1, −3: Draw a card), then adds loyalty.'}</p>
+    <p class="hint">${jace && jace.abilities && jace.abilities.length ? `Adds loyalty to your Jace (now ${jace.loyalty}).` : 'Creates your Jace token (−1: Surveil 1, −3: Draw a card), then adds loyalty.'}</p>
     <div class="toggles">${[1, 2, 3, 4, 5].map(n => `<button class="tog" data-pk="empower" data-v="${n}">Empower ${n}</button>`).join('')}</div></div>`;
   el.innerHTML = `
     <div class="drawer-head"><span class="ptitle">Add tokens</span><button class="done" data-pk="close">Close</button></div>
@@ -1221,7 +1295,7 @@ function renderAnthem(i) {
   const f = document.activeElement;
   if (!el.hidden && f && f.tagName === 'INPUT' && el.contains(f)) return;
   const top = el.scrollTop;
-  el.innerHTML = anthemHtml(i, a);
+  setHTML(el, anthemHtml(i, a));
   el.hidden = false; el.scrollTop = top;
 }
 function anthemAction(i, b) {
@@ -1314,7 +1388,7 @@ function renderEditor(i) {
   if (!ed.hidden && a && a.tagName === 'INPUT' && ed.contains(a)) return;
   if (s.qty <= 1) edit[i].scope = 'all';
   const top = ed.scrollTop;
-  ed.innerHTML = editorHtml(i, s);
+  setHTML(ed, editorHtml(i, s));
   ed.hidden = false; ed.scrollTop = top;
 }
 function editorAction(i, b) {
@@ -1336,6 +1410,10 @@ function editorAction(i, b) {
         if ((f === 'power' || f === 'toughness' || f === 'loyalty') && s[f] + d < 0) return null;
         const t = targetFor(i);
         t[f] += d;
+        if (f === 'loyalty' && t.kind === 'planeswalker' && t.loyalty <= 0) {
+          removeStack(i, t); edit[i] = null;
+          return `${t.name} is out of loyalty and goes to the graveyard`;
+        }
         return `${tokLabel(t)} → ${statLine(t, i)}`;
       });
     }
@@ -1400,15 +1478,16 @@ function cardHtml(t, i) {
     <span class="tf"><span class="tags">${t.qty > 1 ? `<span class="tq">×${t.qty}</span>` : ''}${tags.join('')}</span>${corner}</span>
   </div>`;
 }
+function setHTML(el, html) { if (el._html !== html) { el.innerHTML = html; el._html = html; } }
 function renderTokens(i) {
   const el = panels[i], list = state.players[i].tokens, anthems = state.players[i].anthems;
   const any = list.length > 0 || anthems.length > 0;
   el.classList.toggle('has-tokens', any);
   el.classList.toggle('has-anthems', anthems.length > 0);
   el.querySelector('[data-tray]').hidden = !any;
-  if (!any) { el.querySelector('[data-cards]').innerHTML = ''; el.querySelector('[data-anths]').innerHTML = ''; return; }
-  el.querySelector('[data-anths]').innerHTML = anthems.map(a =>
-    `<button class="achip" data-anth="${a.id}" aria-label="${escapeHtml(a.name)}, ${escapeHtml(anthSub(a))}. Open to edit.">${escapeHtml(a.name)}<b>${signed(a.p)}/${signed(a.t)}</b></button>`).join('');
+  if (!any) { setHTML(el.querySelector('[data-cards]'), ''); setHTML(el.querySelector('[data-anths]'), ''); return; }
+  setHTML(el.querySelector('[data-anths]'), anthems.map(a =>
+    `<button class="achip" data-anth="${a.id}" aria-label="${escapeHtml(a.name)}, ${escapeHtml(anthSub(a))}. Open to edit.">${escapeHtml(a.name)}<b>${signed(a.p)}/${signed(a.t)}</b></button>`).join(''));
   const creatures = list.filter(t => t.kind === 'creature');
   const count = creatures.reduce((n, t) => n + t.qty, 0);
   const power = creatures.reduce((n, t) => n + t.qty * Math.max(0, effP(t, auraFor(i, t))), 0);
@@ -1417,7 +1496,7 @@ function renderTokens(i) {
     [count ? `${count} creature${count > 1 ? 's' : ''} · ${power} power` : '', others ? `${others} other` : ''].filter(Boolean).join(' · ') || 'No tokens yet';
   const cards = el.querySelector('[data-cards]');
   const top = cards.scrollTop;
-  cards.innerHTML = list.map(t => cardHtml(t, i)).join('');
+  setHTML(cards, list.map(t => cardHtml(t, i)).join(''));
   cards.scrollTop = top;
 }
 
@@ -1439,6 +1518,44 @@ function renderDelta(i) {
   el.textContent = d > 0 ? `+${d}` : d < 0 ? `−${-d}` : '';
   el.classList.toggle('show', d !== 0);
   el.classList.toggle('neg', d < 0);
+  placeDelta(i);
+}
+// Beside the number when it fits; otherwise above its right edge so it never runs into the + or off the screen
+function placeDelta(i) {
+  const el = panels[i].querySelector('[data-delta]');
+  if (!el.textContent) return;
+  el.classList.remove('above');
+  const r = el.getBoundingClientRect(), plus = panels[i].querySelector('.zone.plus .glyph').getBoundingClientRect();
+  if (r.right > plus.left - 4) el.classList.add('above');
+}
+// The tray and chips grow upward from the bottom; the life total gets the space above them.
+// On small halves the token cards shrink (and scroll) so the life total keeps at least ~30% of the height.
+function layoutHalf(i) {
+  const el = panels[i], face = el.querySelector('.face');
+  const bottom = el.querySelector('.bottom'), cards = el.querySelector('[data-cards]');
+  const H = face.clientHeight;
+  if (!H) return;
+  cards.style.maxHeight = '';
+  const head = el.querySelector('.head').offsetHeight;
+  const room = H - head - Math.max(90, H * .3);
+  let bh = bottom.offsetHeight;
+  if (bh > room && cards.offsetHeight) {
+    cards.style.maxHeight = Math.max(60, cards.offsetHeight - (bh - room)) + 'px';
+    bh = bottom.offsetHeight;
+  }
+  el.style.setProperty('--bh', bh + 'px');
+  el.style.setProperty('--hh', head + 'px');
+  fitLife(i);
+  placeDelta(i);
+}
+// Wide totals (−22, 100+) shrink to fit between the − and + marks
+function fitLife(i) {
+  const el = panels[i], life = el.querySelector('[data-life]');
+  life.style.fontSize = '';
+  const minus = el.querySelector('.zone.minus .glyph').getBoundingClientRect();
+  const plus = el.querySelector('.zone.plus .glyph').getBoundingClientRect();
+  const avail = plus.left - minus.right - 24, w = life.getBoundingClientRect().width;
+  if (avail > 0 && w > avail) life.style.fontSize = Math.max(36, parseFloat(getComputedStyle(life).fontSize) * avail / w) + 'px';
 }
 
 function render() {
@@ -1465,7 +1582,7 @@ function render() {
         return `<button class="chip ${cls}">${c.key === 'cmd' ? 'Cmdr' : c.label}<b>${v}</b></button>`;
       });
     chips.push('<button class="chip more" data-addtok>+ Token</button>', '<button class="chip more">Counters</button>');
-    el.querySelector('[data-chips]').innerHTML = chips.join('');
+    setHTML(el.querySelector('[data-chips]'), chips.join(''));
 
     COUNTERS.forEach(c => {
       const row = el.querySelector(`[data-row="${c.key}"]`);
@@ -1477,6 +1594,7 @@ function render() {
     });
     el.querySelectorAll('[data-drawer] .sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.color === p.color)));
     renderTokens(i);
+    layoutHalf(i);
     renderEditor(i);
     renderAnthem(i);
     el.querySelectorAll('[data-tog]').forEach(b => b.setAttribute('aria-pressed', String(state[b.dataset.tog] === i)));
@@ -1539,7 +1657,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
 document.getElementById('btn-start').addEventListener('click', () => {
   const random = pick.first === 'random';
   const first = random ? Math.floor(Math.random() * 2) : Number(pick.first);
-  pushUndo();
+  pushUndo(true);
   state = newState(state, pick.format, pick.life, first);
   addLog({ p: first, text: 'goes first' });
   panels.forEach((_, i) => { closeDrawer(i); closePicker(i); closeEditor(i); closeAnthem(i); });
@@ -1627,10 +1745,13 @@ function start(hot) {
     if (p.kit === undefined) p.kit = null;
   });
   if (hot && hot.undo) undoStack = hot.undo;
+  else if (!(hot && hot.state) && load()) undoStack = loadUndo();
   buildPanel(0); buildPanel(1);
   renderBg(0); renderBg(1);
   render();
   setInterval(renderClock, 1000);
+  window.addEventListener('resize', () => { layoutHalf(0); layoutHalf(1); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { layoutHalf(0); layoutHalf(1); });
 }
 window.claude?.hot?.snapshot?.(() => ({ state, undo: undoStack }));
 if (window.claude?.hot?.ready) window.claude.hot.ready(start);
