@@ -31,13 +31,28 @@ A two-player Magic: The Gathering life tracker built for an iPad sitting beside 
 - Deck kits: save each deck's tokens and anthems as a kit. The chosen kit appears first in the token picker
   and carries over between games.
 
+- Rules help (free, works offline): search the full Comprehensive Rules by words or rule number, with tappable
+  cross-references, bookmarks and the glossary; look up any card's Oracle text and official rulings (Scryfall);
+  21 plain-language dispute guides linked to the exact rules; a "Settle a dispute" form that records both sides,
+  cited evidence and the decision; and searchable house rulings and house rules. Tapping an ability on a token card
+  opens its rule.
+
 Games and photos are saved on the device in browser storage.
+
+## Rules data
+
+`rules.json` is built from the official Comprehensive Rules text published by Wizards of the Coast. The
+**Update Comprehensive Rules** workflow (`.github/workflows/update-rules.yml`) checks for a new version on the
+3rd of each month and commits it; it can also be run by hand from the Actions tab. Run locally with
+`node scripts/update-rules.mjs` (downloads) or `node scripts/update-rules.mjs path/to/rules.txt`.
 
 ## Files
 
 ```
 index.html             the whole app
+rules.json             Comprehensive Rules for offline search (updated monthly)
 sw.js                  offline cache (bump VERSION after changes)
+scripts/               rules updater
 manifest.webmanifest   Home Screen name and icons
 icons/                 app icons
 ```

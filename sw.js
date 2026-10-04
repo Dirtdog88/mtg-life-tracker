@@ -1,10 +1,10 @@
 // Caches the app so it opens with no connection. Bump VERSION when shipping changes.
-const VERSION = 'v7';
+const VERSION = 'v8';
 const APP = `life-app-${VERSION}`;
 const FONTS = 'life-fonts';
 const ART = 'life-art';          // Scryfall card art, kept so chosen art shows offline
 const ART_MAX = 400;
-const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
+const FILES = ['./', 'index.html', 'rules.json', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(APP).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

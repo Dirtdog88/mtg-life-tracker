@@ -363,6 +363,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
 .clock { font-family: var(--f-num); font-weight: 600; font-size: 22px; font-variant-numeric: tabular-nums; color: var(--muted); padding: 0 6px; min-width: 70px; text-align: center; }
 @media (max-width: 760px) {
   .sbtn .t { display: none; }
+  .strip { overflow-x: auto; scrollbar-width: none; }
+  .pass .who { display: none; }
   .strip { padding: 6px 8px; gap: 4px; }
   .strip .group { gap: 4px; }
   .sbtn { min-width: 44px; height: 44px; padding: 0 8px; }
@@ -413,6 +415,53 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
 .log .ld.pos { color: #84d9a4; }
 .empty { color: var(--muted); font-size: 14px; padding: 12px 0; }
 
+/* ---------- Rules screen ---------- */
+.rules-sheet { width: min(980px, 100%); height: 100%; max-height: 100%; padding: 0; gap: 0; overflow: hidden; }
+.rules-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px 8px; }
+.rules-ver { flex: 1; min-width: 0; font-size: 12px; color: var(--muted); }
+.rtabs { display: flex; gap: 6px; padding: 4px 20px 12px; overflow-x: auto; border-bottom: 1px solid var(--line); flex: none; scrollbar-width: none; }
+.rtabs::-webkit-scrollbar { display: none; }
+.rtab { flex: none; }
+.rtab[aria-selected="true"] { background: rgba(255, 255, 255, .12); border-color: var(--ink); color: var(--ink); }
+.rpane { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 20px 28px; display: flex; flex-direction: column; gap: 12px; }
+.rlist { display: flex; flex-direction: column; gap: 6px; }
+.rres {
+  width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .03); font-size: 14px; line-height: 1.45; color: var(--ink);
+}
+.rres b { font-family: var(--f-num); font-size: 16px; margin-right: 6px; color: #8db8ff; }
+.rres small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3px; padding: 0 1px; }
+.rview h3 { margin: 0 0 4px; font-size: 20px; text-wrap: balance; }
+.rview .crumb { font-size: 12px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.rule { padding: 10px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 12px; }
+.rule.hit { background: rgba(233, 197, 92, .1); border-radius: 8px; padding-inline: 10px; }
+.rule .rid { font-family: var(--f-num); font-weight: 700; font-size: 16px; margin-right: 6px; }
+.rule p, .guide p, .gloss p { margin: 4px 0; line-height: 1.55; max-width: 72ch; font-size: 15px; white-space: pre-line; }
+.rex { margin-top: 6px; padding: 8px 12px; border-left: 3px solid var(--line); color: var(--muted); font-size: 14px; line-height: 1.5; white-space: pre-line; }
+.rlink { background: none; border: 0; padding: 0; font: inherit; color: #8db8ff; text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
+.rbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.guide .gsum { font-size: 16px; color: var(--ink); font-weight: 600; }
+.card-oracle { white-space: pre-line; line-height: 1.55; font-size: 15px; max-width: 72ch; }
+.ruling { border-bottom: 1px solid var(--line); padding: 10px 0; display: flex; gap: 10px; align-items: flex-start; }
+.ruling p { margin: 0; flex: 1; line-height: 1.5; font-size: 14px; }
+.ruling small { display: block; color: var(--muted); font-size: 12px; margin-bottom: 2px; }
+.dform { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+.dform textarea, .dform input[type="text"] {
+  width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(0, 0, 0, .3);
+  color: var(--ink); font-family: var(--f-ui); font-size: 16px; -webkit-user-select: text; user-select: text;
+}
+.dform textarea { min-height: 76px; resize: vertical; }
+.ev { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .04); font-size: 14px; }
+.ev span { flex: 1; min-width: 0; }
+.ev .x { width: 32px; height: 32px; border-radius: 8px; border: 0; background: rgba(255, 255, 255, .08); color: var(--muted); font-size: 18px; flex: none; }
+.hr { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .03); display: flex; flex-direction: column; gap: 6px; }
+.hr h4 { margin: 0; font-size: 16px; }
+.hr .dec { font-weight: 700; color: #84d9a4; }
+.hr small { color: var(--muted); }
+.kwl { text-decoration: underline dotted; text-underline-offset: 2px; cursor: pointer; }
+.toast.ok { border-color: #84d9a4; }
+
 /* Mirrored announcement: same result, readable from both seats */
 .toast {
   position: fixed; z-index: 40; left: 50%; top: calc(12px + env(safe-area-inset-top, 0px)); transform: translateX(-50%);
@@ -458,6 +507,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
       </button>
       <button class="sbtn" id="btn-dice" aria-label="Dice and coin">
         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg><span class="t">Dice</span>
+      </button>
+      <button class="sbtn" id="btn-rules" aria-label="Rules">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span class="t">Rules</span>
       </button>
       <button class="sbtn" id="btn-log" aria-label="Life history">
         <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg><span class="t">Log</span>
@@ -509,6 +561,37 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
     <h2 id="log-title">Game history</h2>
     <ul class="log" id="log-list"></ul>
     <div class="sheet-actions"><button class="btn" data-close>Close</button></div>
+  </div>
+</div>
+
+<!-- Rules -->
+<div class="scrim" id="sheet-rules" hidden>
+  <div class="sheet rules-sheet" role="dialog" aria-labelledby="rules-title">
+    <div class="rules-head"><h2 id="rules-title">Rules</h2><span class="rules-ver" id="rules-ver"></span><button class="btn" data-close>Close</button></div>
+    <div class="rtabs" role="tablist">
+      <button class="tog rtab" role="tab" data-rtab="search">Search</button>
+      <button class="tog rtab" role="tab" data-rtab="cards">Cards</button>
+      <button class="tog rtab" role="tab" data-rtab="guides">Guides</button>
+      <button class="tog rtab" role="tab" data-rtab="dispute">Settle a dispute</button>
+      <button class="tog rtab" role="tab" data-rtab="house">House rulings</button>
+    </div>
+    <section class="rpane" data-pane="search">
+      <input class="art-q" id="rq" type="search" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search"
+        placeholder="Search the rules: trample deathtouch, copy token, or a number like 702.19" aria-label="Search the Comprehensive Rules">
+      <div id="rq-body"></div>
+    </section>
+    <section class="rpane" data-pane="cards" hidden>
+      <input class="art-q" id="cq" type="search" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search"
+        placeholder="Card name, e.g. Lightning Bolt" aria-label="Look up a card">
+      <div class="sugs" id="cq-sugs"></div>
+      <div id="cq-body"></div>
+    </section>
+    <section class="rpane" data-pane="guides" hidden>
+      <input class="art-q" id="gq" type="search" autocomplete="off" placeholder="Filter guides" aria-label="Filter guides">
+      <div id="g-body"></div>
+    </section>
+    <section class="rpane" data-pane="dispute" hidden><div id="d-body"></div></section>
+    <section class="rpane" data-pane="house" hidden><div id="h-body"></div></section>
   </div>
 </div>
 
@@ -618,9 +701,9 @@ function load() {
 }
 const UNDO_KEY = 'mtg-duel-undo-v1';
 let toastTimer = null, lastToast = 0;
-function toast(msg) {
+function toast(msg, ok) {
   const el = document.getElementById('toast');
-  el.textContent = msg; el.hidden = false;
+  el.textContent = msg; el.hidden = false; el.classList.toggle('ok', !!ok);
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 5000);
 }
 function storageFull() {
@@ -730,6 +813,8 @@ function buildPanel(i) {
   });
   const cardsEl = el.querySelector('[data-cards]');
   cardsEl.addEventListener('click', e => {
+    const kwEl = e.target.closest('[data-kw]');
+    if (kwEl) { openRulesKeyword(kwEl.dataset.kw); return; }
     const ab = e.target.closest('[data-abil]');
     const c = e.target.closest('[data-tok]'); if (!c) return;
     if (ab) { if (!ab.disabled) useAbility(i, c.dataset.tok, Number(ab.dataset.abil)); return; }
@@ -1672,7 +1757,7 @@ function cardHtml(t, i) {
   const art = artFor(t);
   return `<div class="tok${t.tapped ? ' tapped' : ''}${art ? ' has-art' : ''}" data-tok="${t.id}" role="button" tabindex="0" style="--t:${COLORS[t.color] || COLORS.steel}${art ? `;--art:url(&quot;${escapeHtml(art.url)}&quot;)` : ''}" aria-label="${escapeHtml(tokLabel(t))}. Open to edit.">
     <span class="tn">${escapeHtml(t.name)}</span><span class="tt">${escapeHtml(t.types)}</span>
-    ${abils || (desc ? `<span class="tk">${escapeHtml(desc)}</span>` : '')}
+    ${abils || (kws.length ? `<span class="tk">${kws.map(k => `<span class="kwl" data-kw="${escapeHtml(k)}">${escapeHtml(k)}</span>`).join(', ')}</span>` : desc ? `<span class="tk">${escapeHtml(desc)}</span>` : '')}
     <span class="tf"><span class="tags">${t.qty > 1 ? `<span class="tq">×${t.qty}</span>` : ''}${tags.join('')}</span>${corner}</span>
   </div>`;
 }
@@ -1904,6 +1989,570 @@ function renderLog() {
     return `<li><span class="lt">Turn ${e.turn}</span><span class="lw">${what}</span>${d}</li>`;
   }).join('');
 }
+
+// Dispute guides: short explainers for common table arguments. Each cites the Comprehensive Rules.
+// refs: rule numbers ("704.5f"), sections ("613"), glossary terms ("gloss:Dies") or searches ("q:remains blocked").
+const GUIDES = [
+  { id: 'stack', title: 'The stack and responding', sum: 'Last in, first out. Nothing resolves until everyone passes in a row.',
+    body: ['Spells and most abilities go on the stack instead of happening right away. After something is added, players get a chance to respond, starting with the active player.',
+      'A response goes on top and resolves first: last in, first out. The top item resolves only when every player passes priority in a row without doing anything. After each resolution the active player gets priority again, so players can respond again before the next item resolves.',
+      "Playing a land and activating mana abilities don't use the stack, so they can't be responded to."],
+    ex: "Your opponent casts a removal spell on your creature. In response you give it hexproof. Your spell resolves first, so when the removal spell tries to resolve its target is illegal and it does nothing.",
+    refs: ['117.3', '117.4', '405.5', '608.2b'] },
+  { id: 'sba', title: 'State-based actions: 0 toughness, 0 life, 0 loyalty', sum: "Checked automatically whenever a player would get priority. They don't use the stack.",
+    body: ['Whenever a player would get priority, the game checks a list of conditions and applies all of them at once. They never use the stack, so nobody can respond to them.',
+      'The common ones: a player at 0 or less life loses; a player with ten or more poison counters loses; a creature with 0 or less toughness goes to the graveyard; a creature with damage at least equal to its toughness is destroyed; a creature dealt damage by a deathtouch source is destroyed; a planeswalker with 0 loyalty goes to the graveyard; the legend rule; +1/+1 and −1/−1 counters cancel; a token in any zone but the battlefield ceases to exist.',
+      'Indestructible stops "destroy" and lethal damage, but not 0 toughness. A creature with 0 toughness is put into the graveyard, not destroyed.'],
+    ex: "An indestructible 2/2 gets −2/−2. It goes to the graveyard anyway.",
+    refs: ['704.3', '704.5a', '704.5c', '704.5d', '704.5f', '704.5g', '704.5h', '704.5i', '704.5j', '704.5q'] },
+  { id: 'sick', title: 'Summoning sickness and haste', sum: "No attacking or {T} abilities until you've controlled it since your turn began.",
+    body: ["A creature can't attack, and can't use abilities with {T} or {Q} in their cost, unless you've controlled it continuously since your most recent turn began. Tokens follow the same rule.",
+      "It can still block, and it can use abilities that don't have {T} or {Q} in the cost.",
+      "It's about control, not about being new: a creature you gain control of this turn can't attack either. Haste removes the restriction.",
+      'In the tracker, the "New" tag clears at the start of your turn.'],
+    ex: "You create a 1/1 Goblin during your main phase. It can't attack this turn, but it can block during your opponent's turn.",
+    refs: ['302.6', '702.10b'] },
+  { id: 'copy', title: 'Token copies: what gets copied', sum: "Printed values only. Not counters, not tapped status, not pumps or anthems.",
+    body: ["A copy gets the original's copiable values: what's printed on it (name, mana cost, color, types, rules text, power, toughness, loyalty), plus changes made by other copy effects.",
+      "It doesn't copy counters, whether it's tapped, damage, attached Auras or Equipment, or other effects like +2/+2 until end of turn or an anthem.",
+      "A copy of a planeswalker enters with its printed loyalty, not the original's current loyalty. A copy of a legendary permanent is legendary too, so the legend rule applies unless the effect says it isn't legendary."],
+    ex: "You copy a 1/1 Soldier token that has three +1/+1 counters. The copy is a 1/1 Soldier with no counters.",
+    refs: ['707.2', '306.5b', '704.5j'] },
+  { id: 'counters', title: '+1/+1 and −1/−1 counters', sum: 'They cancel in pairs as a state-based action.',
+    body: ['Each +1/+1 counter adds 1 to power and toughness. Each −1/−1 counter subtracts 1.',
+      "If a permanent has both, they're removed in pairs as a state-based action, so it ends up with only one kind.",
+      "Copy effects don't copy counters, and a token that leaves the battlefield stops existing, counters and all.",
+      'In the tracker, a token has one counters row: below zero means −1/−1 counters.'],
+    ex: 'A creature with two +1/+1 counters gets three −1/−1 counters. It ends up with one −1/−1 counter.',
+    refs: ['122.1', '122.3', '704.5q'] },
+  { id: 'combat', title: 'Combat, step by step', sum: 'Beginning of combat, attackers, blockers, damage, end of combat.',
+    body: ['Combat has five steps: beginning of combat, declare attackers, declare blockers, combat damage, end of combat. Players can cast instants and activate abilities in each step.',
+      'Declaring attackers taps them, unless they have vigilance. Each blocker blocks one attacker, but several creatures can block the same attacker.',
+      'All combat damage is dealt at the same time, unless a creature has first strike or double strike.',
+      "A blocked creature stays blocked even if its blocker leaves combat. Without trample it then deals no combat damage."],
+    refs: ['506', '508', '509', '510', '509.1h'] },
+  { id: 'strike', title: 'First strike and double strike', sum: 'Two combat damage steps when either is involved.',
+    body: ['If any attacking or blocking creature has first strike or double strike as the combat damage step begins, there are two combat damage steps.',
+      'In the first, only creatures with first strike or double strike deal damage. In the second, the other creatures deal damage, and creatures with double strike deal damage again.',
+      "A creature destroyed in the first step deals no damage in the second."],
+    ex: 'Your 2/2 with first strike blocks a 2/2. It deals its damage first, and the attacker dies before it can deal damage back.',
+    refs: ['510.4', '702.7b', '702.4b'] },
+  { id: 'trample', title: 'Trample, deathtouch and lethal damage', sum: 'Assign lethal to blockers, the rest to the player. With deathtouch, 1 is lethal.',
+    body: ['With trample, the attacking creature must assign lethal damage to each of its blockers. Any damage left over can be assigned to the player, planeswalker or battle it attacked.',
+      'Lethal damage accounts for damage already dealt this turn. With deathtouch, 1 damage counts as lethal, so a deathtouch trampler can assign 1 to each blocker and the rest to the player.',
+      'If all its blockers are removed, a trampler assigns all its damage to the player. A blocked creature without trample deals no combat damage in that case.'],
+    ex: 'A 6/6 with trample and deathtouch is blocked by a 5/5. Assign 1 to the 5/5 (lethal, thanks to deathtouch) and 5 to the defending player.',
+    refs: ['702.19b', '702.2c', '510.1c', '509.1h'] },
+  { id: 'dies', title: '"Dies" vs. leaves the battlefield', sum: 'Dies means battlefield to graveyard. Tokens do die, then disappear.',
+    body: ['"Dies" means put into a graveyard from the battlefield. Being exiled, returned to hand or put into a library is not dying.',
+      'A token that dies does go to the graveyard briefly, so "when this dies" and "whenever a creature dies" abilities trigger. Then it ceases to exist.',
+      'Dies and leaves-the-battlefield abilities "look back in time": they see the permanent as it last existed on the battlefield, including its counters and anthem bonuses.'],
+    ex: 'You control an effect that says "Whenever a creature you control dies, you gain 1 life." Your Soldier token is destroyed. You gain 1 life, then the token stops existing.',
+    refs: ['700.4', '704.5d', '603.6c', '603.10a'] },
+  { id: 'abilities', title: 'Triggered, activated, static and replacement', sum: 'How to tell them apart, and which ones can be responded to.',
+    body: ['Activated: written "Cost: Effect". You choose when to use it, and it goes on the stack.',
+      'Triggered: starts with "when", "whenever" or "at". It goes on the stack the next time a player would get priority, and it can be responded to.',
+      'Static: always on and never on the stack, like an anthem or flying.',
+      'Replacement: uses words like "instead", "skip" or "enters with". It changes an event as it happens and can\'t be responded to.'],
+    refs: ['113.3', '602', '603', '604', '614.1'] },
+  { id: 'commander', title: 'Commander tax, damage and zones', sum: '{2} more per previous cast. 21 combat damage from one commander loses.',
+    body: ['Commander tax: each time you cast your commander from the command zone, it costs {2} more for each previous time you cast it from there this game.',
+      'Commander damage: a player dealt 21 or more combat damage by the same commander loses. Only combat damage counts, and each commander is tracked separately. It is still regular damage, so it also costs life. The tracker\'s commander damage counter takes the life off for you.',
+      'Zones: if your commander would go to your hand or library, you may put it in the command zone instead. If it goes to the graveyard or exile, you may move it to the command zone the next time state-based actions are checked.'],
+    ex: 'You have cast your commander from the command zone twice. Casting it a third time costs {4} more.',
+    refs: ['903.8', '903.10a', '704.6c', '903.9a', '903.9b'] },
+  { id: 'loyalty', title: 'Loyalty abilities and planeswalkers', sum: 'Main phase, empty stack, once per turn per planeswalker.',
+    body: ['You can activate a loyalty ability only during your main phase, when the stack is empty, and only if no loyalty ability of that planeswalker has been activated this turn.',
+      'The loyalty cost is paid when you activate it, before the ability resolves.',
+      'Damage dealt to a planeswalker removes that many loyalty counters. At 0 loyalty it goes to the graveyard.'],
+    ex: 'Jace has 1 loyalty. You can activate its −1 (it goes to 0 and to the graveyard, but the ability still resolves). You can\'t activate its −3.',
+    refs: ['606.3', '606.6', '120.3c', '704.5i'] },
+  { id: 'jace', title: 'Empower Jace', sum: 'Adds loyalty to your Jace token, creating it first if needed.',
+    body: ['"Empower Jace N" means: if you don\'t control a Jace planeswalker token, create a blue Jace planeswalker token with 0 loyalty, "−1: Surveil 1" and "−3: Draw a card." Then put N loyalty counters on a Jace planeswalker token you control.',
+      'It only adds loyalty to Jace tokens, never to a Jace card.',
+      'The token is created and given its counters in the same instruction, so it doesn\'t die at 0 loyalty in between.',
+      'After that it\'s a normal planeswalker: loyalty abilities once per turn at sorcery speed, it can be attacked, damage removes loyalty, and it leaves at 0. A copy of the token enters with its printed loyalty, 0, so it goes to the graveyard unless something adds loyalty.',
+      'In the tracker: + Token, then Empower Jace.'],
+    refs: ['701.71a', '606.3', '704.5i', '306.5b'] },
+  { id: 'initiative', title: 'Venture, dungeons and the initiative', sum: 'Take the initiative to venture into Undercity. Combat damage steals it.',
+    body: ['Venture into the dungeon: if you don\'t have a dungeon in the command zone, choose one and put your marker on its top room. Otherwise move to the next room. Each room has an ability that triggers when you enter it. Venturing from the bottom room completes the dungeon and starts a new one.',
+      'The initiative: when you take it, you venture into Undercity. At the beginning of your upkeep, if you have it, you venture into Undercity again.',
+      'If creatures deal combat damage to the player with the initiative, their controller takes it (and ventures). Only one player has the initiative at a time.'],
+    refs: ['701.49a', '701.49b', '701.49c', '726.2', '726.3', '309'] },
+  { id: 'monarch', title: 'The monarch', sum: 'Draw at your end step. Combat damage to the monarch takes the crown.',
+    body: ['At the beginning of the monarch\'s end step, that player draws a card.',
+      'Whenever a creature deals combat damage to the monarch, its controller becomes the monarch.',
+      'In the tracker, set the monarch in a player\'s panel.'],
+    refs: ['725.2', '725.4'] },
+  { id: 'layers', title: 'Anthems and changing power/toughness', sum: 'Define, then set, then add and subtract, then switch.',
+    body: ['When several effects change a creature\'s power and toughness, apply them in this order: (a) abilities that define power/toughness, like */*; (b) effects that set it to a number, like "becomes a 0/1"; (c) everything that adds or subtracts, including anthems, pumps and +1/+1 counters; (d) effects that switch power and toughness.',
+      'Within each step, effects apply in timestamp order (the order they started).',
+      'This is one slice of the layer system. Interactions involving control, type or ability changes follow the full rule 613.'],
+    ex: 'Your 3/3 becomes a 0/1 until end of turn. You also control a +1/+1 anthem, and it has a +1/+1 counter. Set to 0/1, then +1/+1 twice: it\'s a 2/3.',
+    refs: ['613.4a', '613.4b', '613.4c', '613.4d', '613'] },
+  { id: 'legend', title: 'The legend rule', sum: 'Two legendaries with the same name: keep one.',
+    body: ['If you control two or more legendary permanents with the same name, choose one and put the rest into the graveyard. It\'s a state-based action, so it can\'t be responded to.',
+      'It only looks at permanents you control. Your opponent can have one with the same name.',
+      'A token copy of a legendary permanent is legendary too, unless the effect says it isn\'t.'],
+    refs: ['704.5j', '707.2'] },
+  { id: 'mulligan', title: 'Mulligans', sum: 'Draw seven again, then bottom one card per mulligan.',
+    body: ['To mulligan, shuffle your hand into your library and draw a new hand of seven. Then put one card from your hand on the bottom of your library for each mulligan you\'ve taken.',
+      'In multiplayer games and in any Brawl game, the first mulligan is free: it doesn\'t count toward the cards you put on the bottom.',
+      'In other two-player games every mulligan counts. If your group plays it differently, agree before the game and save it in House rulings.'],
+    refs: ['103.5', '103.5c'] },
+  { id: 'turn', title: 'Turn order and the first turn', sum: 'The player going first skips their first draw.',
+    body: ['A turn goes: untap, upkeep, draw, first main phase, combat, second main phase, end step, cleanup.',
+      'In a two-player game, the player who goes first skips the draw step of their first turn.',
+      'Nobody gets priority during the untap step, and normally not during cleanup. "At the beginning of your upkeep" and "at the beginning of the end step" abilities trigger as those steps begin.',
+      'Damage wears off and "until end of turn" effects end during the cleanup step.'],
+    refs: ['103.8a', '502.3', '514.2', '500'] },
+  { id: 'targeting', title: 'Hexproof and ward', sum: "Hexproof can't be targeted by opponents. Ward counters unless they pay.",
+    body: ['Hexproof: the permanent can\'t be the target of spells or abilities your opponents control. You can still target it with your own.',
+      'Ward [cost]: whenever it becomes the target of a spell or ability an opponent controls, counter that spell or ability unless that player pays the cost. Ward is a triggered ability, so it uses the stack.',
+      'Neither stops effects that don\'t target, such as "destroy all creatures" or "each opponent sacrifices a creature".'],
+    refs: ['702.11b', '702.21a'] },
+  { id: 'lifelink', title: 'Lifelink and deathtouch', sum: "Lifelink isn't a trigger. Deathtouch makes any damage lethal to creatures.",
+    body: ['Lifelink: damage dealt by the source also makes its controller gain that much life, at the same time as the damage. It isn\'t a triggered ability, so it can\'t be responded to, and it works for any damage, not just combat.',
+      'Deathtouch: any nonzero amount of damage it deals to a creature destroys that creature as a state-based action. Indestructible creatures survive it.',
+      'Several instances of lifelink or deathtouch on the same creature don\'t add anything extra.'],
+    refs: ['702.15b', '702.2b', '702.2c', '704.5h', '702.15f', '702.2f'] }
+];
+
+/* ---------- Rules screen ---------- */
+// The Comprehensive Rules live in rules.json (kept current by .github/workflows/update-rules.yml) and work offline.
+const NAV_KEY = 'mtg-duel-rulesnav-v1', CARDS_KEY = 'mtg-duel-cards-v1', HOUSE_KEY = 'mtg-duel-house-v1', DRAFT_KEY = 'mtg-duel-dispute-v1';
+const loadJSON = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
+const saveJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { storageFull(); return false; } };
+let RULES = null, rulesLoading = null, rulesError = false;
+const RX = { by: new Map(), sec: new Map(), gloss: new Map(), kids: new Map(), kw: new Map(), ch: new Map() };
+const norm = t => String(t).toLowerCase().replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/[−–—]/g, '-');
+let rprefs = loadJSON(NAV_KEY, { recent: [], marks: [] });
+let cardCache = loadJSON(CARDS_KEY, []);
+let house = loadJSON(HOUSE_KEY, { rulings: [], rules: [] });
+let draft = loadJSON(DRAFT_KEY, null);
+const rui = { tab: 'search', stack: [], card: null, guide: null };
+
+function loadRules() {
+  if (RULES) return Promise.resolve(RULES);
+  if (!rulesLoading) rulesLoading = fetch('rules.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(d => { indexRules(d); RULES = d; rulesError = false; return d; })
+    .catch(e => { rulesLoading = null; rulesError = true; throw e; });
+  return rulesLoading;
+}
+function indexRules(d) {
+  d.rules.forEach(r => {
+    r.n = norm(r.text + ' ' + (r.ex || []).join(' '));
+    RX.by.set(r.id, r);
+    const parent = /[a-z]$/.test(r.id) ? r.id.replace(/[a-z]+$/, '') : r.id.split('.')[0];
+    if (!RX.kids.has(parent)) RX.kids.set(parent, []);
+    RX.kids.get(parent).push(r.id);
+    // Keyword abilities and actions are titled rules like "702.19. Trample"
+    if (/^70[12]\.\d+$/.test(r.id) && r.text.length < 40 && !/[.:]/.test(r.text)) RX.kw.set(norm(r.text), r.id);
+  });
+  d.sections.forEach(x => RX.sec.set(x.n, x));
+  d.chapters.forEach(x => RX.ch.set(x.n, x));
+  d.glossary.forEach(g => { g.n = norm(g.term + ' ' + g.text); RX.gloss.set(norm(g.term), g); });
+}
+const ruleTitle = id => {
+  if (RX.sec.has(id)) return RX.sec.get(id).title;
+  const r = RX.by.get(id.replace(/[a-z]+$/, ''));
+  return r && r.text.length < 60 ? r.text : '';
+};
+// Rule numbers inside rule text become links
+function linkify(text) {
+  let h = escapeHtml(text).replace(/\b(\d{3}\.\d+[a-z]?)\b/g, (m, id) => RX.by.has(id) ? `<button class="rlink" data-ref="r:${id}">${id}</button>` : m);
+  return h.replace(/\b(rules?|sections?)\s+(\d{3})\b(?![.\d])/gi, (m, w, n) => RX.sec.has(n) ? `${w} <button class="rlink" data-ref="r:${n}">${n}</button>` : m);
+}
+function mark(html, words) {
+  if (!words.length) return html;
+  const re = new RegExp(`(${words.map(w => escRe(escapeHtml(w))).join('|')})`, 'gi');
+  return html.split(/(<[^>]+>)/).map(part => part.startsWith('<') ? part : part.replace(re, '<mark>$1</mark>')).join('');
+}
+function snippet(text, words) {
+  const n = norm(text);
+  let at = words.length ? Math.max(0, n.indexOf(words[0])) : 0;
+  const start = Math.max(0, at - 60), end = Math.min(text.length, at + 160);
+  return (start ? '…' : '') + text.slice(start, end).replace(/\n/g, ' ') + (end < text.length ? '…' : '');
+}
+function searchRules(q) {
+  const t = norm(q.trim());
+  const words = t.split(/\s+/).filter(w => w.length > 1 || /\d/.test(w));
+  if (!words.length) return { words, items: [] };
+  const items = [];
+  // A rule or section number goes straight to the top
+  const num = t.replace(/\.$/, '');
+  if (/^\d{3}(\.\d+[a-z]?)?$/.test(num) && (RX.by.has(num) || RX.sec.has(num))) items.push({ ref: 'r:' + num, score: 99999 });
+  RX.gloss.forEach(g => {
+    const term = norm(g.term);
+    if (term === t) items.push({ ref: 'g:' + g.term, score: 1000 });
+    else if (words.every(w => g.n.includes(w))) items.push({ ref: 'g:' + g.term, score: (term.includes(t) ? 300 : 40) });
+  });
+  RX.sec.forEach(x => { if (words.every(w => norm(x.title).includes(w))) items.push({ ref: 'r:' + x.n, score: 500 }); });
+  // Guides that cover all the words come first: they explain interactions spread over several rules
+  GUIDES.forEach(g => { if (words.every(w => norm(g.title + ' ' + g.sum + ' ' + g.body.join(' ') + ' ' + (g.ex || '')).includes(w))) items.push({ ref: 'guide:' + g.id, score: 950 }); });
+  // Each keyword mentioned ("trample", "first strike") brings up its own rule
+  const seenKw = new Set();
+  for (let k = 0; k < words.length; k++) for (const span of [words[k] + ' ' + (words[k + 1] || ''), words[k]]) {
+    const id = RX.kw.get(span.trim());
+    if (id && !seenKw.has(id)) { seenKw.add(id); items.push({ ref: 'r:' + id, score: 800 }); }
+  }
+  const all = [], some = [];
+  RULES.rules.forEach(r => {
+    if (seenKw.has(r.id)) return;
+    const hits = words.filter(w => r.n.includes(w)).length;
+    if (!hits) return;
+    let score = 50;
+    if (norm(r.text) === t) score = 900;                         // the keyword's own rule, e.g. "Trample"
+    if (r.n.includes(t)) score += 40;                            // the whole phrase appears
+    score -= Math.min(30, r.text.length / 40) + (/[a-z]$/.test(r.id) ? 2 : 0);
+    if (hits === words.length) all.push({ ref: 'r:' + r.id, score });
+    else some.push({ ref: 'r:' + r.id, score: score * hits / words.length - 30 });
+  });
+  items.push(...all);
+  // When few rules contain every word, include rules with some of them, ranked lower
+  if (all.length < 15) items.push(...some);
+  items.sort((a, b) => b.score - a.score);
+  return { words, items: items.slice(0, 80) };
+}
+function resultHtml(ref, words) {
+  const [k, v] = [ref.slice(0, ref.indexOf(':')), ref.slice(ref.indexOf(':') + 1)];
+  if (k === 'guide') { const g = GUIDES.find(x => x.id === v); return `<button class="rres" data-ref="${ref}"><b>Guide</b>${mark(escapeHtml(g.title), words)}<small>${escapeHtml(g.sum)}</small></button>`; }
+  if (k === 'g') { const g = RX.gloss.get(norm(v)); return `<button class="rres" data-ref="${escapeHtml(ref)}"><b>${mark(escapeHtml(g.term), words)}</b><small>Glossary</small>${mark(escapeHtml(snippet(g.text, words)), words)}</button>`; }
+  if (RX.sec.has(v)) return `<button class="rres" data-ref="${ref}"><b>${v}</b>${mark(escapeHtml(RX.sec.get(v).title), words)}<small>Section</small></button>`;
+  const r = RX.by.get(v), title = ruleTitle(v);
+  return `<button class="rres" data-ref="${ref}"><b>${v}</b>${mark(escapeHtml(snippet(r.text + (r.ex ? ' Example: ' + r.ex.join(' ') : ''), words)), words)}${title && title !== r.text ? `<small>${escapeHtml(title)}</small>` : ''}</button>`;
+}
+function ruleBlock(id, hit) {
+  const r = RX.by.get(id);
+  return `<div class="rule${hit ? ' hit' : ''}" id="rule-${id.replace('.', '-')}"><p><span class="rid">${id}</span>${linkify(r.text)}</p>
+    ${(r.ex || []).map(x => `<div class="rex">Example: ${linkify(x)}</div>`).join('')}</div>`;
+}
+const isMarked = ref => rprefs.marks.includes(ref);
+function viewBar(ref, label) {
+  return `<div class="rbar"><button class="tog" data-back>Back</button>
+    <button class="tog" data-mark="${escapeHtml(ref)}" aria-pressed="${isMarked(ref)}">${isMarked(ref) ? 'Bookmarked' : 'Bookmark'}</button>
+    <button class="tog" data-cite="${escapeHtml(ref)}" data-label="${escapeHtml(label)}">Cite in dispute</button></div>`;
+}
+function refLabel(ref) {
+  const v = ref.slice(ref.indexOf(':') + 1);
+  if (ref.startsWith('g:')) return `Glossary: ${v}`;
+  if (ref.startsWith('ch:')) return `Chapter ${v}`;
+  const t = ruleTitle(v);
+  return `Rule ${v}${t ? ` (${t})` : ''}`;
+}
+function refView(ref) {
+  const v = ref.slice(ref.indexOf(':') + 1);
+  if (ref.startsWith('g:')) {
+    const g = RX.gloss.get(norm(v));
+    if (!g) return `${viewBar(ref, refLabel(ref))}<p class="hint">That glossary term isn't in this version of the rules.</p>`;
+    return `${viewBar(ref, refLabel(ref))}<div class="rview gloss"><span class="crumb">Glossary</span><h3>${escapeHtml(g.term)}</h3><p>${linkify(g.text)}</p></div>`;
+  }
+  if (ref.startsWith('ch:')) {
+    const c = RX.ch.get(v);
+    const secs = RULES.sections.filter(x => x.n[0] === v);
+    return `<div class="rbar"><button class="tog" data-back>Back</button></div><div class="rview"><span class="crumb">Chapter ${v}</span><h3>${escapeHtml(c ? c.title : '')}</h3>
+      <div class="rlist">${secs.map(x => `<button class="rres" data-ref="r:${x.n}"><b>${x.n}</b>${escapeHtml(x.title)}</button>`).join('')}</div></div>`;
+  }
+  if (RX.sec.has(v)) {
+    const top = (RX.kids.get(v) || []);
+    return `${viewBar(ref, refLabel(ref))}<div class="rview"><span class="crumb">Section</span><h3>${v}. ${escapeHtml(RX.sec.get(v).title)}</h3>
+      <div class="rlist">${top.map(id => `<button class="rres" data-ref="r:${id}"><b>${id}</b>${escapeHtml(snippet(RX.by.get(id).text, []))}</button>`).join('')}</div></div>`;
+  }
+  const base = v.replace(/[a-z]+$/, '');
+  if (!RX.by.has(base)) return `${viewBar(ref, refLabel(ref))}<p class="hint">Rule ${escapeHtml(v)} isn't in this version of the rules (effective ${escapeHtml(RULES.effective)}).</p>`;
+  const sec = base.split('.')[0];
+  const kids = RX.kids.get(base) || [];
+  return `${viewBar(ref, refLabel(ref))}<div class="rview"><span class="crumb"><button class="rlink" data-ref="r:${sec}">${sec}. ${escapeHtml(RX.sec.has(sec) ? RX.sec.get(sec).title : '')}</button></span>
+    ${ruleBlock(base, v === base && kids.length > 0)}${kids.map(id => ruleBlock(id, id === v)).join('')}</div>`;
+}
+function rulesHome() {
+  const list = (title, refs) => refs.length ? `<div class="sec"><div class="lbl">${title}</div><div class="rlist">${refs.map(r => resultHtml(r, [])).join('')}</div></div>` : '';
+  const valid = r => { const v = r.slice(r.indexOf(':') + 1); return r.startsWith('g:') ? RX.gloss.has(norm(v)) : RX.by.has(v) || RX.sec.has(v); };
+  return `${list('Bookmarks', rprefs.marks.filter(valid))}${list('Recently viewed', rprefs.recent.filter(valid).slice(0, 8))}
+    <div class="sec"><div class="lbl">Browse the rules</div><div class="rlist">${RULES.chapters.map(c => `<button class="rres" data-ref="ch:${c.n}"><b>${c.n}</b>${escapeHtml(c.title)}</button>`).join('')}
+      <button class="rres" data-ref="glossary"><b>A–Z</b>Glossary (${RULES.glossary.length} terms)</button></div></div>`;
+}
+function renderSearch() {
+  const body = document.getElementById('rq-body');
+  if (!RULES) {
+    body.innerHTML = `<p class="hint">${rulesError ? "The rules haven't downloaded to this iPad yet. Open the app once while online and they'll be saved for offline use." : 'Loading the rules…'}</p>`;
+    return;
+  }
+  const top = rui.stack[rui.stack.length - 1];
+  if (top === 'glossary') {
+    body.innerHTML = `<div class="rbar"><button class="tog" data-back>Back</button></div><div class="rlist">${RULES.glossary.map(g => `<button class="rres" data-ref="g:${escapeHtml(g.term)}"><b>${escapeHtml(g.term)}</b></button>`).join('')}</div>`;
+  } else if (top) {
+    body.innerHTML = refView(top);
+    const hit = body.querySelector('.rule.hit'); if (hit) hit.scrollIntoView({ block: 'start' }); else body.closest('.rpane').scrollTop = 0;
+  } else {
+    const q = document.getElementById('rq').value;
+    if (!q.trim()) { body.innerHTML = rulesHome(); return; }
+    const { words, items } = searchRules(q);
+    body.innerHTML = items.length ? `<p class="hint">${items.length === 80 ? 'Top 80' : items.length} result${items.length === 1 ? '' : 's'}</p><div class="rlist">${items.map(x => resultHtml(x.ref, words)).join('')}</div>`
+      : `<p class="hint">Nothing in the rules matches “${escapeHtml(q)}”. Try fewer or different words.</p>`;
+  }
+}
+function openRef(ref) {
+  if (ref.startsWith('guide:')) { rui.guide = ref.slice(6); switchRulesTab('guides'); return; }
+  if (rui.tab !== 'search') switchRulesTab('search');
+  rui.stack.push(ref);
+  if (ref.startsWith('r:') || ref.startsWith('g:')) {
+    rprefs.recent = [ref, ...rprefs.recent.filter(x => x !== ref)].slice(0, 20); saveJSON(NAV_KEY, rprefs);
+  }
+  renderSearch();
+}
+function openRules(tab) {
+  document.getElementById('sheet-rules').hidden = false;
+  switchRulesTab(tab || rui.tab);
+  loadRules().then(() => {
+    document.getElementById('rules-ver').textContent = `Comprehensive Rules, effective ${RULES.effective}`;
+    renderRulesTab();
+  }).catch(() => renderRulesTab());
+}
+function openRulesKeyword(k) {
+  openRules('search');
+  loadRules().then(() => {
+    const id = RX.kw.get(norm(k));
+    rui.stack = [];
+    if (id) openRef('r:' + id); else { document.getElementById('rq').value = k; renderSearch(); }
+  }).catch(() => {});
+}
+function switchRulesTab(tab) {
+  rui.tab = tab;
+  document.querySelectorAll('[data-rtab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.rtab === tab)));
+  document.querySelectorAll('#sheet-rules [data-pane]').forEach(p => { p.hidden = p.dataset.pane !== tab; });
+  renderRulesTab();
+}
+function renderRulesTab() {
+  if (rui.tab === 'search') renderSearch();
+  else if (rui.tab === 'cards') renderCards();
+  else if (rui.tab === 'guides') renderGuides();
+  else if (rui.tab === 'dispute') renderDispute();
+  else renderHouse();
+}
+
+/* Cards: Oracle text and official rulings from Scryfall, remembered for offline use */
+function trimCard(c) {
+  const face = x => ({ name: x.name, mana_cost: x.mana_cost || '', type_line: x.type_line || '', oracle_text: x.oracle_text || '', power: x.power, toughness: x.toughness, loyalty: x.loyalty });
+  return { name: c.name, keywords: c.keywords || [], faces: c.card_faces && !c.oracle_text ? c.card_faces.map(face) : [face(c)], uri: c.scryfall_uri || '' };
+}
+async function lookupCard(name, token) {
+  const body = document.getElementById('cq-body');
+  document.getElementById('cq-sugs').innerHTML = '';
+  body.innerHTML = `<p class="hint">Looking up “${escapeHtml(name)}”…</p>`;
+  try {
+    let card;
+    if (token) { const res = await sf(`/cards/search?q=${encodeURIComponent(`t:token include:extras !${sfQuote(name)}`)}&order=released&dir=desc`); card = res && res.data && res.data[0]; }
+    else card = await sf(`/cards/named?exact=${encodeURIComponent(name)}`);
+    if (!card) { body.innerHTML = `<p class="hint">Scryfall has no ${token ? 'token' : 'card'} named “${escapeHtml(name)}”.</p>`; return; }
+    let rulings = [];
+    if (card.rulings_uri && card.rulings_uri.startsWith(SF)) {
+      const r = await sf(card.rulings_uri.slice(SF.length));
+      rulings = ((r && r.data) || []).map(x => ({ date: x.published_at, text: x.comment, source: x.source }));
+    }
+    const entry = { ...trimCard(card), token: !!token, rulings, saved: Date.now() };
+    cardCache = [entry, ...cardCache.filter(c => c.name !== entry.name)].slice(0, 30);
+    saveJSON(CARDS_KEY, cardCache);
+    rui.card = entry.name; renderCards();
+  } catch (e) {
+    const cached = cardCache.find(c => c.name.toLowerCase() === name.toLowerCase());
+    if (cached) { rui.card = cached.name; renderCards(); toast('Offline: showing the saved copy of this card.', true); }
+    else body.innerHTML = `<p class="hint">${offlineMsg}</p>`;
+  }
+}
+function renderCards() {
+  const body = document.getElementById('cq-body');
+  const c = rui.card && cardCache.find(x => x.name === rui.card);
+  if (c) {
+    const kws = c.keywords.map(k => RULES && RX.kw.has(norm(k)) ? `<button class="tog" data-ref="r:${RX.kw.get(norm(k))}">${escapeHtml(k)} · ${RX.kw.get(norm(k))}</button>` : '').join('');
+    body.innerHTML = `<div class="rbar"><button class="tog" data-cardback>Back</button><button class="tog" data-cite="card:${escapeHtml(c.name)}" data-label="Card: ${escapeHtml(c.name)}">Cite in dispute</button></div>
+      <div class="rview">${c.faces.map(f => `<span class="crumb">${escapeHtml(f.type_line)}</span><h3>${escapeHtml(f.name)} <span class="credit">${escapeHtml(f.mana_cost)}</span></h3>
+        <div class="card-oracle">${escapeHtml(f.oracle_text)}</div>${f.power !== undefined ? `<p class="credit">${escapeHtml(f.power)}/${escapeHtml(f.toughness)}</p>` : ''}${f.loyalty !== undefined ? `<p class="credit">Loyalty ${escapeHtml(f.loyalty)}</p>` : ''}`).join('')}
+        ${kws ? `<div class="sec"><div class="lbl">Keyword rules</div><div class="toggles">${kws}</div></div>` : ''}
+        <div class="sec"><div class="lbl">Official rulings (${c.rulings.length})</div>
+        ${c.rulings.length ? c.rulings.slice().reverse().map((r, n) => `<div class="ruling"><p><small>${escapeHtml(r.date || '')}${r.source === 'wotc' ? ' · Wizards of the Coast' : ''}</small>${linkify(r.text)}</p>
+          <button class="tog" data-cite="ruling:${escapeHtml(c.name)}:${c.rulings.length - 1 - n}" data-label="Ruling on ${escapeHtml(c.name)}">Cite</button></div>`).join('') : '<p class="hint">No official rulings for this card.</p>'}</div>
+        <p class="hint">Card text and rulings from Scryfall.</p></div>`;
+    return;
+  }
+  const names = [...new Set(state.players.flatMap(p => p.tokens.map(t => t.name)))];
+  body.innerHTML = `${names.length ? `<div class="sec"><div class="lbl">Tokens on the board</div><div class="toggles">${names.map(n => `<button class="tog" data-tokcard="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('')}</div></div>` : ''}
+    ${cardCache.length ? `<div class="sec"><div class="lbl">Recently viewed (saved for offline)</div><div class="rlist">${cardCache.map(x => `<button class="rres" data-savedcard="${escapeHtml(x.name)}"><b>${escapeHtml(x.name)}</b>${escapeHtml(x.faces[0].type_line)}<small>${x.rulings.length} ruling${x.rulings.length === 1 ? '' : 's'}</small></button>`).join('')}</div></div>` : ''}
+    <p class="hint">Type a card name to see its exact Oracle text and official rulings. Looking up new cards needs internet.</p>`;
+}
+let cardQueryTimer = null;
+function cardQueryChanged(text) {
+  clearTimeout(cardQueryTimer);
+  const box = document.getElementById('cq-sugs');
+  if (text.trim().length < 2) { box.innerHTML = ''; return; }
+  cardQueryTimer = setTimeout(async () => {
+    try {
+      const res = await sf(`/cards/autocomplete?q=${encodeURIComponent(text.trim())}`);
+      box.innerHTML = ((res && res.data) || []).slice(0, 8).map(n => `<button class="tog" data-cardname="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
+    } catch (e) { box.innerHTML = `<span class="hint">${offlineMsg}</span>`; }
+  }, 250);
+}
+
+/* Guides */
+function renderGuides() {
+  const body = document.getElementById('g-body');
+  const g = rui.guide && GUIDES.find(x => x.id === rui.guide);
+  if (g) {
+    const refs = g.refs.map(ref => {
+      const id = ref.replace(/^r:/, '');
+      if (!RULES) return `<button class="rres" data-ref="r:${id}"><b>${id}</b></button>`;
+      const t = RX.sec.has(id) ? RX.sec.get(id).title : RX.by.has(id) ? snippet(RX.by.get(id).text, []) : 'Not in this version of the rules';
+      return `<button class="rres" data-ref="r:${id}"><b>${id}</b>${escapeHtml(t)}</button>`;
+    }).join('');
+    body.innerHTML = `<div class="rbar"><button class="tog" data-guideback>All guides</button><button class="tog" data-cite="guide:${g.id}" data-label="Guide: ${escapeHtml(g.title)}">Cite in dispute</button></div>
+      <div class="rview guide"><span class="crumb">Guide</span><h3>${escapeHtml(g.title)}</h3><p class="gsum">${escapeHtml(g.sum)}</p>
+      ${g.body.map(p => `<p>${escapeHtml(p)}</p>`).join('')}${g.ex ? `<div class="rex">Example: ${escapeHtml(g.ex)}</div>` : ''}
+      <div class="sec"><div class="lbl">Official rules</div><div class="rlist">${refs}</div></div></div>`;
+    body.closest('.rpane').scrollTop = 0;
+    return;
+  }
+  const q = norm(document.getElementById('gq').value.trim());
+  const list = GUIDES.filter(x => !q || norm(x.title + ' ' + x.sum + ' ' + x.body.join(' ')).includes(q));
+  body.innerHTML = list.length ? `<div class="rlist">${list.map(x => `<button class="rres" data-guide="${x.id}"><b>${escapeHtml(x.title)}</b><small>${escapeHtml(x.sum)}</small></button>`).join('')}</div>`
+    : `<p class="hint">No guide mentions “${escapeHtml(q)}”. Try the Search tab.</p>`;
+}
+
+/* Settle a dispute: organise the argument, cite evidence, record the decision */
+const newDraft = () => ({ topic: '', cards: '', claims: ['', ''], evidence: [], winner: null, note: '', log: true });
+function saveDraft() { saveJSON(DRAFT_KEY, draft); }
+function cite(ref, label) {
+  if (!draft) draft = newDraft();
+  if (!draft.evidence.some(e => e.ref === ref)) draft.evidence.push({ ref, label });
+  saveDraft();
+  toast(`Added to the dispute: ${label}`, true);
+}
+function evidenceLink(e) {
+  const [k] = e.ref.split(':');
+  if (k === 'r' || k === 'g' || k === 'guide') return `<button class="rlink" data-ref="${escapeHtml(e.ref)}">${escapeHtml(e.label)}</button>`;
+  const name = e.ref.split(':')[1];
+  return `<button class="rlink" data-savedcard="${escapeHtml(name)}">${escapeHtml(e.label)}</button>`;
+}
+function renderDispute() {
+  const body = document.getElementById('d-body');
+  if (!draft) draft = newDraft();
+  const n = state.players.map(p => escapeHtml(p.name));
+  body.innerHTML = `<div class="dform">
+    <p class="hint">Write down both sides, find the rule or ruling that settles it, then record the decision. While looking things up in the other tabs, tap “Cite in dispute” to attach them here.</p>
+    <label class="lbl" for="d-topic">What's the question?</label>
+    <input type="text" id="d-topic" data-df="topic" value="${escapeHtml(draft.topic)}" placeholder="e.g. Does the token copy keep its +1/+1 counters?">
+    <label class="lbl" for="d-cards">Cards involved</label>
+    <input type="text" id="d-cards" data-df="cards" value="${escapeHtml(draft.cards)}" placeholder="e.g. Soldier token, Cackling Counterpart">
+    <label class="lbl" for="d-c0">${n[0]} says</label>
+    <textarea id="d-c0" data-df="c0">${escapeHtml(draft.claims[0])}</textarea>
+    <label class="lbl" for="d-c1">${n[1]} says</label>
+    <textarea id="d-c1" data-df="c1">${escapeHtml(draft.claims[1])}</textarea>
+    <div class="lbl">Evidence</div>
+    ${draft.evidence.length ? draft.evidence.map((e, i) => `<div class="ev"><span>${evidenceLink(e)}</span><button class="x" data-unev="${i}" aria-label="Remove evidence">×</button></div>`).join('') : '<p class="hint">Nothing attached yet. Use “Cite in dispute” on a rule, card ruling or guide.</p>'}
+    <div class="toggles"><button class="tog" data-dgo="search">Search rules</button><button class="tog" data-dgo="cards">Look up a card</button><button class="tog" data-dgo="guides">Guides</button></div>
+    <div class="lbl">Decision</div>
+    <div class="toggles">
+      <button class="tog" data-dwin="0" aria-pressed="${draft.winner === 0}">${n[0]} is right</button>
+      <button class="tog" data-dwin="1" aria-pressed="${draft.winner === 1}">${n[1]} is right</button>
+      <button class="tog" data-dwin="other" aria-pressed="${draft.winner === 'other'}">Something else</button>
+    </div>
+    <label class="lbl" for="d-note">Ruling in your own words</label>
+    <textarea id="d-note" data-df="note" placeholder="e.g. Copies don't copy counters (707.2), so the copy is a 1/1.">${escapeHtml(draft.note)}</textarea>
+    <div class="toggles"><button class="tog" data-dlog aria-pressed="${draft.log}">Add to game log</button></div>
+    <div class="sheet-actions"><button class="btn" data-dclear>Clear</button><button class="btn primary" data-dsave>Save ruling</button></div>
+    <p class="hint" id="d-msg"></p></div>`;
+}
+function saveRuling() {
+  const msg = document.getElementById('d-msg');
+  if (!draft.topic.trim()) { msg.textContent = 'Add the question first, so the ruling can be found later.'; document.getElementById('d-topic').focus(); return; }
+  if (draft.winner === null) { msg.textContent = 'Pick a decision before saving.'; return; }
+  const names = state.players.map(p => p.name);
+  const decision = draft.winner === 'other' ? 'Something else' : `${names[draft.winner]} is right`;
+  house.rulings.unshift({ id: uid(), date: new Date().toISOString().slice(0, 10), topic: draft.topic.trim(), cards: draft.cards.trim(),
+    claims: [{ who: names[0], text: draft.claims[0] }, { who: names[1], text: draft.claims[1] }], decision, note: draft.note.trim(), evidence: draft.evidence });
+  saveJSON(HOUSE_KEY, house);
+  if (draft.log) { pushUndo(); addLog({ p: null, text: `Ruling: ${draft.topic.trim()} · ${decision}` }); commit(); }
+  draft = newDraft(); saveDraft();
+  toast('Ruling saved to House rulings.', true);
+  switchRulesTab('house');
+}
+
+/* House rulings and house rules */
+function renderHouse() {
+  const body = document.getElementById('h-body');
+  const q = norm((document.getElementById('hq') || {}).value || '');
+  const list = house.rulings.filter(r => !q || norm([r.topic, r.cards, r.note, r.decision, ...r.claims.map(c => c.text)].join(' ')).includes(q));
+  body.innerHTML = `<div class="dform">
+    <input class="art-q" id="hq" type="search" value="${escapeHtml(q)}" placeholder="Search saved rulings" aria-label="Search saved rulings">
+    <div class="lbl">Saved rulings (${house.rulings.length})</div>
+    ${list.length ? list.map(r => `<div class="hr"><h4>${escapeHtml(r.topic)}</h4>
+      <span class="dec">${escapeHtml(r.decision)}</span>${r.note ? `<span>${escapeHtml(r.note)}</span>` : ''}
+      ${r.claims.filter(c => c.text).map(c => `<small><b>${escapeHtml(c.who)}:</b> ${escapeHtml(c.text)}</small>`).join('')}
+      ${r.cards ? `<small>Cards: ${escapeHtml(r.cards)}</small>` : ''}
+      ${r.evidence.length ? `<small>Evidence: ${r.evidence.map(evidenceLink).join(' · ')}</small>` : ''}
+      <div class="rbar"><small>${escapeHtml(r.date)}</small><button class="tog danger" data-delruling="${r.id}">Delete</button></div></div>`).join('')
+      : `<p class="hint">${house.rulings.length ? 'No saved ruling matches.' : 'Rulings you settle in “Settle a dispute” are saved here.'}</p>`}
+    <div class="lbl">House rules</div>
+    ${house.rules.map(r => `<div class="ev"><span>${escapeHtml(r.text)}</span><button class="x" data-delrule="${r.id}" aria-label="Delete house rule">×</button></div>`).join('') || '<p class="hint">Rules your group plays differently, e.g. “First mulligan is free in 1v1 Commander.”</p>'}
+    <div class="kit-row"><input id="h-new" maxlength="200" autocomplete="off" placeholder="Add a house rule" aria-label="New house rule"><button class="tog" data-addrule>Add</button></div></div>`;
+}
+
+/* Rules screen wiring */
+(() => {
+  const sheet = document.getElementById('sheet-rules');
+  document.getElementById('btn-rules').addEventListener('click', () => openRules());
+  sheet.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const d = b.dataset;
+    if (d.rtab) switchRulesTab(d.rtab);
+    else if (d.ref) openRef(d.ref);
+    else if ('back' in d) { rui.stack.pop(); renderSearch(); }
+    else if (d.mark) { rprefs.marks = isMarked(d.mark) ? rprefs.marks.filter(x => x !== d.mark) : [d.mark, ...rprefs.marks]; saveJSON(NAV_KEY, rprefs); renderSearch(); }
+    else if (d.cite) cite(d.cite, d.label);
+    else if (d.cardname) { document.getElementById('cq').value = d.cardname; lookupCard(d.cardname, false); }
+    else if (d.tokcard) lookupCard(d.tokcard, true);
+    else if (d.savedcard) { rui.card = d.savedcard; switchRulesTab('cards'); }
+    else if ('cardback' in d) { rui.card = null; renderCards(); }
+    else if (d.guide) { rui.guide = d.guide; renderGuides(); }
+    else if ('guideback' in d) { rui.guide = null; renderGuides(); }
+    else if (d.dgo) switchRulesTab(d.dgo);
+    else if (d.dwin) { draft.winner = d.dwin === 'other' ? 'other' : Number(d.dwin); saveDraft(); renderDispute(); }
+    else if ('dlog' in d) { draft.log = !draft.log; saveDraft(); b.setAttribute('aria-pressed', String(draft.log)); }
+    else if (d.unev) { draft.evidence.splice(Number(d.unev), 1); saveDraft(); renderDispute(); }
+    else if ('dclear' in d) {
+      if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'Tap to clear'; setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.textContent = 'Clear'; } }, 3000); return; }
+      draft = newDraft(); saveDraft(); renderDispute();
+    }
+    else if ('dsave' in d) saveRuling();
+    else if (d.delruling) {
+      if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'Tap to delete'; setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.textContent = 'Delete'; } }, 3000); return; }
+      house.rulings = house.rulings.filter(r => r.id !== d.delruling); saveJSON(HOUSE_KEY, house); renderHouse();
+    }
+    else if (d.delrule) { house.rules = house.rules.filter(r => r.id !== d.delrule); saveJSON(HOUSE_KEY, house); renderHouse(); }
+    else if ('addrule' in d) {
+      const inp = document.getElementById('h-new'), text = inp.value.trim();
+      if (!text) { inp.focus(); return; }
+      house.rules.push({ id: uid(), text }); saveJSON(HOUSE_KEY, house); renderHouse();
+    }
+  });
+  sheet.addEventListener('input', e => {
+    const t = e.target;
+    if (t.id === 'rq') { rui.stack = []; renderSearch(); }
+    else if (t.id === 'cq') cardQueryChanged(t.value);
+    else if (t.id === 'gq') { rui.guide = null; renderGuides(); }
+    else if (t.id === 'hq') { const at = t.selectionStart; renderHouse(); const n = document.getElementById('hq'); n.focus(); n.setSelectionRange(at, at); }
+    else if (t.dataset.df) {
+      const f = t.dataset.df;
+      if (f === 'c0' || f === 'c1') draft.claims[Number(f[1])] = t.value; else draft[f] = t.value;
+      saveDraft();
+    }
+  });
+  sheet.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (e.target.id === 'cq') { e.preventDefault(); const v = e.target.value.trim(); if (v) lookupCard(v, false); }
+    else if (e.target.id === 'rq') { e.preventDefault(); e.target.blur(); }
+    else if (e.target.id === 'h-new') { e.preventDefault(); sheet.querySelector('[data-addrule]').click(); }
+  });
+})();
 
 const announceEl = document.getElementById('announce');
 let announceTimer = null;
