@@ -1,7 +1,9 @@
 // Caches the app so it opens with no connection. Bump VERSION when shipping changes.
-const VERSION = 'v6';
+const VERSION = 'v7';
 const APP = `life-app-${VERSION}`;
 const FONTS = 'life-fonts';
+const ART = 'life-art';          // Scryfall card art, kept so chosen art shows offline
+const ART_MAX = 400;
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -10,7 +12,7 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => k !== APP && k !== FONTS).map(k => caches.delete(k))))
+    .then(keys => Promise.all(keys.filter(k => k !== APP && k !== FONTS && k !== ART).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
@@ -24,6 +26,20 @@ self.addEventListener('fetch', e => {
       const hit = await c.match(e.request);
       const net = fetch(e.request).then(r => { c.put(e.request, r.clone()); return r; }).catch(() => hit);
       return hit || net;
+    }));
+    return;
+  }
+
+  // Scryfall images: saved copy first (art for a card never changes), oldest dropped past ART_MAX
+  if (url.hostname === 'cards.scryfall.io') {
+    e.respondWith(caches.open(ART).then(async c => {
+      const hit = await c.match(e.request);
+      if (hit) return hit;
+      const r = await fetch(e.request);
+      await c.put(e.request, r.clone());
+      const keys = await c.keys();
+      if (keys.length > ART_MAX) await Promise.all(keys.slice(0, keys.length - ART_MAX).map(k => c.delete(k)));
+      return r;
     }));
     return;
   }

@@ -17,7 +17,10 @@ A two-player Magic: The Gathering life tracker built for an iPad sitting beside 
 - Turns, game clock, monarch, initiative, day/night.
 - Coin, d6, d20 and planar die.
 - Undo and a full game history.
-- Per-player name, mana color and background photo.
+- Per-player name, mana color and background: a photo, or any card's art found on Scryfall.
+- Scryfall art for tokens: new tokens get the first matching Scryfall token art automatically; any token can be
+  given different art (any card) or none. Art is credited to its artist. Card data and images:
+  [Scryfall](https://scryfall.com). Searching needs a connection; chosen art is cached for offline use.
 - Tokens: creatures, artifacts, enchantments and planeswalkers. Identical tokens group into one card with a count.
   Each token tracks +1/+1 and −1/−1 counters, until-end-of-turn boosts, abilities, creature types, tapped and
   summoning sickness. Passing the turn untaps and clears boosts. Custom tokens can be saved to **My tokens**.

@@ -218,6 +218,30 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
 .tok .pt.dead { color: var(--danger); }
 .tok .pt.loy { border-radius: 8px 8px 16px 16px; padding: 2px 10px 4px; }
 .tok.tapped { opacity: .55; }
+/* Scryfall art behind a token card, darkened toward the bottom so text stays readable */
+.tok.has-art {
+  background-image: linear-gradient(180deg, rgba(8, 9, 12, .2) 0%, rgba(8, 9, 12, .78) 52%, rgba(8, 9, 12, .94) 100%), var(--art);
+  background-size: cover; background-position: center 30%;
+}
+.tok.has-art .tn, .tok.has-art .tt, .tok.has-art .tk { text-shadow: 0 1px 3px rgba(0, 0, 0, .9); }
+.tok.has-art .tt { color: rgba(242, 239, 232, .8); }
+.art-q {
+  height: 48px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(0, 0, 0, .3);
+  color: var(--ink); font-family: var(--f-ui); font-size: 16px; -webkit-user-select: text; user-select: text; width: 100%;
+}
+.sugs { display: flex; flex-wrap: wrap; gap: 6px; }
+.arts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.artopt {
+  padding: 0; border-radius: 10px; overflow: hidden; border: 2px solid transparent; background: rgba(0, 0, 0, .3);
+  display: flex; flex-direction: column; text-align: left;
+}
+.artopt[aria-pressed="true"] { border-color: var(--p); }
+.artopt img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: rgba(255, 255, 255, .04); }
+.artopt span { padding: 6px 8px; font-size: 11px; line-height: 1.3; color: var(--muted); }
+.artopt span b { display: block; color: var(--ink); font-size: 12px; }
+.artrow { display: flex; gap: 12px; align-items: center; }
+.artthumb { width: 96px; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; flex: none; }
+.credit { font-size: 12px; color: var(--muted); }
 .tok { cursor: pointer; }
 .abils { display: flex; gap: 4px; flex-wrap: wrap; }
 .abil {
@@ -526,6 +550,7 @@ function shrink(file, maxSide, quality) {
 async function setPhoto(i, file) {
   bgMessage(i, 'Loading photo…');
   try {
+    delete bgs['credit' + i];
     bgs[i] = await shrink(file, 1400, .8);
     if (!saveBgs()) {
       bgs[i] = await shrink(file, 900, .7);
@@ -546,6 +571,7 @@ function renderBg(i) {
   el.querySelector('[data-bg]').style.backgroundImage = bgs[i] ? `url("${bgs[i]}")` : '';
   el.classList.toggle('has-bg', !!bgs[i]);
   el.querySelector('[data-bg-remove]').hidden = !bgs[i];
+  el.querySelector('[data-bg-credit]').textContent = bgs[i] && bgs['credit' + i] ? `Art: ${bgs['credit' + i]} · Scryfall` : '';
 }
 const COLORS = {
   white: '#f0deaa', blue: '#8db8ff', black: '#c1a6e6', red: '#ff8f6e',
@@ -671,6 +697,7 @@ function buildPanel(i) {
       <div class="drawer" data-tokpick hidden></div>
       <div class="drawer" data-tokedit hidden></div>
       <div class="drawer" data-anthedit hidden></div>
+      <div class="drawer" data-artpick hidden></div>
       <div class="drawer" data-drawer hidden>
         <div class="drawer-head">
           <input id="name-${i}" data-name maxlength="18" autocomplete="off" aria-label="Player name">
@@ -681,9 +708,11 @@ function buildPanel(i) {
         <div class="photo">
           <span class="label">Background</span>
           <label class="tog" for="bg-${i}">Choose photo</label>
+          <button class="tog" data-findart>Find card art</button>
           <input class="file" type="file" id="bg-${i}" accept="image/*" data-bg-input>
           <button class="tog" data-bg-remove>Remove photo</button>
           <span class="msg" data-bg-msg></span>
+          <span class="credit" data-bg-credit></span>
         </div>
         <div class="toggles">
           <button class="tog" data-tog="monarch">Monarch</button>
@@ -753,7 +782,14 @@ function buildPanel(i) {
     if (file) setPhoto(i, file);
   });
   el.querySelector('[data-bg-remove]').addEventListener('click', () => {
-    delete bgs[i]; saveBgs(); bgMessage(i, ''); renderBg(i);
+    delete bgs[i]; delete bgs['credit' + i]; saveBgs(); bgMessage(i, ''); renderBg(i);
+  });
+  el.querySelector('[data-findart]').addEventListener('click', () => openArtPick(i, 'bg'));
+  const ap = el.querySelector('[data-artpick]');
+  ap.addEventListener('click', e => { const b = e.target.closest('[data-ap]'); if (b) artPickAction(i, b); });
+  ap.addEventListener('input', e => { if (e.target.matches('[data-aq]')) artQueryChanged(i, e.target.value); });
+  ap.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.matches('[data-aq]')) { e.preventDefault(); e.target.blur(); loadCardArts(i, e.target.value.trim(), false); }
   });
   const input = el.querySelector('[data-name]');
   input.addEventListener('input', () => { state.players[i].name = input.value.trim() || `Player ${i + 1}`; save(); renderNames(); });
@@ -761,7 +797,7 @@ function buildPanel(i) {
 }
 
 function openDrawer(i) {
-  closePicker(i); closeEditor(i); closeAnthem(i);
+  closePicker(i); closeEditor(i); closeAnthem(i); closeArtPick(i);
   const d = panels[i].querySelector('[data-drawer]');
   panels[i].querySelector('[data-name]').value = state.players[i].name;
   d.hidden = false;
@@ -960,7 +996,8 @@ function makeToken(tpl, qty) {
     id: uid(), kind: tpl.kind, name: tpl.name, color: tpl.color || 'steel', types: tpl.types || '', text: tpl.text || '',
     keywords: [...(tpl.keywords || [])], power: tpl.power || 0, toughness: tpl.toughness || 0, loyalty: tpl.loyalty || 0,
     sacLife: tpl.sacLife || 0, counters: 0, tempP: 0, tempT: 0, qty, tapped: false, sick: tpl.kind === 'creature',
-    abilities: (tpl.abilities || []).map(a => ({ ...a })), activated: false
+    abilities: (tpl.abilities || []).map(a => ({ ...a })), activated: false,
+    art: tpl.art ? { ...tpl.art } : null, noArt: !!tpl.noArt
   };
 }
 /* Anthems: static boosts that apply to every matching creature token a player controls */
@@ -1022,7 +1059,8 @@ function statLine(t, i) {
 // Stacks that end up identical (say, after untapping) merge back into one card.
 function sig(t) {
   return JSON.stringify([t.kind, t.name, t.color, t.types, t.text, [...t.keywords].sort(), t.power, t.toughness,
-    t.loyalty, t.sacLife, t.counters, t.tempP, t.tempT, t.tapped, t.sick, t.abilities || [], !!t.activated]);
+    t.loyalty, t.sacLife, t.counters, t.tempP, t.tempT, t.tapped, t.sick, t.abilities || [], !!t.activated,
+    t.art ? t.art.url : '', !!t.noArt]);
 }
 function normalize(i) {
   const pl = state.players[i];
@@ -1134,7 +1172,8 @@ function saveKits() { try { localStorage.setItem(KITS_KEY, JSON.stringify(kits))
 const kitOf = i => kits.find(k => k.id === state.players[i].kit) || null;
 const pickUi = [{ naming: null }, { naming: null }];
 const tokTemplate = s => ({ kind: s.kind, name: s.name, color: s.color, types: s.types, text: s.text, keywords: [...s.keywords],
-  power: s.power, toughness: s.toughness, loyalty: s.loyalty, sacLife: s.sacLife, abilities: (s.abilities || []).map(a => ({ ...a })) });
+  power: s.power, toughness: s.toughness, loyalty: s.loyalty, sacLife: s.sacLife, abilities: (s.abilities || []).map(a => ({ ...a })),
+  art: s.art ? { ...s.art } : null, noArt: !!s.noArt });
 const anthTemplate = a => ({ name: a.name, p: a.p, t: a.t, keywords: [...a.keywords], mode: a.mode, value: a.value });
 function addToList(list, tpl) {
   const k = JSON.stringify(tpl);
@@ -1149,6 +1188,159 @@ function saveKitName(i) {
   saveKits(); pickUi[i].naming = null; openPicker(i, true);
 }
 
+/* ---------- Scryfall art ---------- */
+// Card data and images from Scryfall's public API (scryfall.com/docs/api). Searching needs a connection;
+// chosen art is stored as a link and the offline cache (sw.js) keeps a copy of each image once shown.
+const SF = 'https://api.scryfall.com';
+const ART_KEY = 'mtg-duel-artcache-v1';
+let artCache = (() => { try { return JSON.parse(localStorage.getItem(ART_KEY)) || {}; } catch (e) { return {}; } })();
+function saveArtCache() { try { localStorage.setItem(ART_KEY, JSON.stringify(artCache)); } catch (e) { /* ignore */ } }
+const artPending = new Set(), artFailedAt = {};
+let sfLast = 0;
+async function sf(path) {
+  // Scryfall asks for 50–100 ms between requests
+  const wait = Math.max(0, sfLast + 100 - Date.now()); sfLast = Date.now() + wait;
+  if (wait) await new Promise(r => setTimeout(r, wait));
+  const r = await fetch(SF + path, { headers: { Accept: 'application/json' } });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('scryfall ' + r.status);
+  return r.json();
+}
+const okArtUrl = u => typeof u === 'string' && u.startsWith('https://cards.scryfall.io/');
+function artOf(card) {
+  const face = card.image_uris ? card : (card.card_faces || []).find(f => f.image_uris) || {};
+  const url = face.image_uris && face.image_uris.art_crop;
+  return okArtUrl(url) ? { url, artist: face.artist || card.artist || '', set: card.set_name || '', name: card.name || '' } : null;
+}
+const sfQuote = n => `"${String(n).replace(/"/g, '')}"`;
+const COLOR_Q = { white: 'c=w', blue: 'c=u', black: 'c=b', red: 'c=r', green: 'c=g', steel: 'c=c', gold: 'c>=2' };
+async function searchArts(q, order = 'released') {
+  const res = await sf(`/cards/search?q=${encodeURIComponent(q)}&unique=art&order=${order}&dir=desc`);
+  return res && res.data ? res.data.map(artOf).filter(Boolean) : [];
+}
+// Token art queries: exact name, matching power/toughness and color first, then the name alone
+function tokenQueries(t) {
+  const base = `t:token include:extras !${sfQuote(t.name)}`;
+  const strict = base + (t.kind === 'creature' ? ` pow=${t.power} tou=${t.toughness}` : '') + (COLOR_Q[t.color] ? ` ${COLOR_Q[t.color]}` : '');
+  return strict === base ? [base] : [strict, base];
+}
+const autoKey = t => `${t.name.toLowerCase()}|${t.kind}|${t.kind === 'creature' ? t.power + '/' + t.toughness : ''}|${t.color}`;
+// Art shown for a token: its own choice, else the first matching Scryfall token art (looked up once and remembered)
+function artFor(t) {
+  if (t.noArt) return null;
+  if (t.art && okArtUrl(t.art.url)) return t.art;
+  const k = autoKey(t);
+  if (artCache[k] === undefined) requestAutoArt(t, k);
+  return artCache[k] || null;
+}
+async function requestAutoArt(t, k) {
+  if (artPending.has(k) || (artFailedAt[k] && Date.now() - artFailedAt[k] < 60000)) return;
+  artPending.add(k);
+  try {
+    let found = null;
+    for (const q of tokenQueries(t)) { const arts = await searchArts(q); if (arts.length) { found = arts[0]; break; } }
+    artCache[k] = found ? { url: found.url, artist: found.artist } : null;
+    saveArtCache();
+    if (state) { renderTokens(0); renderTokens(1); renderEditor(0); renderEditor(1); }
+  } catch (e) { artFailedAt[k] = Date.now(); }
+  finally { artPending.delete(k); }
+}
+
+/* Art chooser: opens inside the player's half, for their background or for one token group */
+const artUi = [null, null];
+let artQueryTimer = null;
+function openArtPick(i, target, tokId) {
+  closeDrawer(i); closeEditor(i); closePicker(i); closeAnthem(i);
+  const el = panels[i].querySelector('[data-artpick]');
+  const t = target === 'tok' ? state.players[i].tokens.find(x => x.id === tokId) : null;
+  artUi[i] = { target, tokId, results: [] };
+  el.innerHTML = `
+    <div class="drawer-head"><span class="ptitle">${target === 'bg' ? 'Background art' : `Art for ${escapeHtml(t ? t.name : 'token')}`}</span>
+      <button class="done" data-ap="close">Close</button></div>
+    <input class="art-q" data-aq autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search"
+      placeholder="${target === 'bg' ? 'Card name, e.g. Krenko, Mob Boss' : 'Or search any card by name'}" aria-label="Search Scryfall by card name">
+    <div class="sugs" data-asugs></div>
+    <p class="hint" data-astatus></p>
+    <div class="arts" data-arts></div>
+    ${target === 'tok' ? `<div class="toggles"><button class="tog" data-ap="auto">Use automatic art</button><button class="tog" data-ap="none">No art</button></div>` : ''}
+    <p class="hint">Card images from Scryfall. Artist shown under each image.</p>`;
+  el.hidden = false; el.scrollTop = 0;
+  if (t) loadTokenArts(i, t); else { artStatus(i, 'Type a card name, then pick a card and an artwork.'); el.querySelector('[data-aq]').focus(); }
+}
+function closeArtPick(i) {
+  clearTimeout(artQueryTimer);
+  artUi[i] = null;
+  const el = panels[i].querySelector('[data-artpick]');
+  const a = document.activeElement; if (a && el.contains(a)) a.blur();
+  el.hidden = true;
+}
+function artStatus(i, msg) { const n = panels[i].querySelector('[data-astatus]'); if (n) n.textContent = msg; }
+const offlineMsg = "Couldn't reach Scryfall. Check the iPad's internet connection and try again.";
+function showArts(i, arts, emptyMsg) {
+  const ui = artUi[i]; if (!ui) return;
+  ui.results = arts;
+  const current = ui.target === 'bg' ? bgs[i] : (() => { const t = state.players[i].tokens.find(x => x.id === ui.tokId); return t && t.art ? t.art.url : ''; })();
+  panels[i].querySelector('[data-arts]').innerHTML = arts.map((a, n) => `<button class="artopt" data-ap="pick" data-n="${n}" aria-pressed="${a.url === current}">
+      <img src="${escapeHtml(a.url)}" alt="${escapeHtml(a.name)} art" loading="lazy">
+      <span><b>${escapeHtml(a.name)}</b>${escapeHtml(a.set)}${a.artist ? ` · ${escapeHtml(a.artist)}` : ''}</span></button>`).join('');
+  artStatus(i, arts.length ? `${arts.length} artwork${arts.length === 1 ? '' : 's'}. Tap one to use it.` : emptyMsg);
+}
+async function loadTokenArts(i, t) {
+  artStatus(i, 'Searching Scryfall tokens…');
+  try {
+    const arts = await searchArts(`t:token include:extras !${sfQuote(t.name)}`);
+    if (artUi[i] && artUi[i].tokId === t.id) showArts(i, arts, `No Scryfall token named “${t.name}”. Search any card above to use its art.`);
+  } catch (e) { artStatus(i, offlineMsg); }
+}
+function artQueryChanged(i, text) {
+  clearTimeout(artQueryTimer);
+  const box = panels[i].querySelector('[data-asugs]');
+  if (text.trim().length < 2) { box.innerHTML = ''; return; }
+  artQueryTimer = setTimeout(async () => {
+    try {
+      const res = await sf(`/cards/autocomplete?q=${encodeURIComponent(text.trim())}`);
+      if (!artUi[i]) return;
+      box.innerHTML = ((res && res.data) || []).slice(0, 8).map(n =>
+        `<button class="tog" data-ap="card" data-name="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
+    } catch (e) { artStatus(i, offlineMsg); }
+  }, 250);
+}
+async function loadCardArts(i, name, exact) {
+  if (!name) return;
+  panels[i].querySelector('[data-asugs]').innerHTML = '';
+  artStatus(i, `Finding art for “${name}”…`);
+  try {
+    const arts = await searchArts(exact ? `!${sfQuote(name)} include:extras` : name);
+    if (artUi[i]) showArts(i, arts.slice(0, 60), `Nothing on Scryfall matches “${name}”.`);
+  } catch (e) { artStatus(i, offlineMsg); }
+}
+function artPickAction(i, b) {
+  const ui = artUi[i]; if (!ui) return;
+  const a = b.dataset.ap;
+  const back = () => { const { target, tokId } = ui; closeArtPick(i); if (target === 'bg') openDrawer(i); else if (edit[i]) openEditor(i, edit[i].id); else if (tokId) openEditor(i, tokId); };
+  if (a === 'close') back();
+  else if (a === 'card') { panels[i].querySelector('[data-aq]').value = b.dataset.name; loadCardArts(i, b.dataset.name, true); }
+  else if (a === 'pick' || a === 'auto' || a === 'none') {
+    const art = a === 'pick' ? ui.results[Number(b.dataset.n)] : null;
+    if (a === 'pick' && !art) return;
+    if (ui.target === 'bg') {
+      bgs[i] = art.url; bgs['credit' + i] = art.artist; saveBgs(); renderBg(i);
+    } else {
+      const t = state.players[i].tokens.find(x => x.id === ui.tokId);
+      if (t) {
+        edit[i] = { id: t.id, scope: 'all' };
+        tokAct(i, null, () => {
+          if (a === 'pick') { t.art = { url: art.url, artist: art.artist }; t.noArt = false; return `${t.name} gets art by ${art.artist || 'unknown artist'}`; }
+          if (a === 'auto') { if (!t.art && !t.noArt) return null; t.art = null; t.noArt = false; return `${t.name} uses automatic art`; }
+          if (t.noArt) return null;
+          t.noArt = true; return `${t.name} has no art`;
+        });
+      }
+    }
+    back();
+  }
+}
+
 /* Picker */
 function tplSub(t) {
   if (t.kind === 'creature') return `${t.power}/${t.toughness}${t.keywords && t.keywords.length ? ' · ' + t.keywords.join(', ') : ''}`;
@@ -1157,7 +1349,7 @@ function tplSub(t) {
 }
 const pickBtn = (t, attrs) => `<button class="pick" style="--t:${COLORS[t.color] || COLORS.steel}" ${attrs}><strong>${escapeHtml(t.name)}</strong><span>${escapeHtml(tplSub(t))}</span></button>`;
 function openPicker(i, keepScroll) {
-  closeDrawer(i); closeEditor(i); closeAnthem(i);
+  closeDrawer(i); closeEditor(i); closeAnthem(i); closeArtPick(i);
   const el = panels[i].querySelector('[data-tokpick]');
   const top = el.scrollTop;
   const kit = kitOf(i), ui = pickUi[i];
@@ -1250,7 +1442,7 @@ function addAnthem(i, tpl, openAfter) {
   });
 }
 function openAnthem(i, id) {
-  closeDrawer(i); closePicker(i); closeEditor(i);
+  closeDrawer(i); closePicker(i); closeEditor(i); closeArtPick(i);
   anthEdit[i] = id; renderAnthem(i);
   panels[i].querySelector('[data-anthedit]').scrollTop = 0;
 }
@@ -1324,7 +1516,7 @@ function anthemAction(i, b) {
 
 /* Editor */
 function openEditor(i, id) {
-  closeDrawer(i); closePicker(i); closeAnthem(i);
+  closeDrawer(i); closePicker(i); closeAnthem(i); closeArtPick(i);
   edit[i] = { id, scope: 'all' };
   renderEditor(i);
   panels[i].querySelector('[data-tokedit]').scrollTop = 0;
@@ -1367,6 +1559,10 @@ function editorHtml(i, t) {
     ${abil}${emp}
     <div class="toggles">${tog('data-te="tapped"', 'Tapped', t.tapped)}${isC ? tog('data-te="sick"', 'Summoning sick', t.sick) : ''}</div>
     ${isC ? `<div class="sec"><div class="lbl">Abilities</div><div class="toggles">${KEYWORDS.map(k => tog(`data-te="kw" data-v="${k}"`, k, t.keywords.includes(k))).join('')}</div></div>` : ''}
+    ${(() => { const art = artFor(t); return `<div class="sec"><div class="lbl">Card art</div><div class="artrow">
+      ${art ? `<img class="artthumb" src="${escapeHtml(art.url)}" alt="">` : ''}
+      <span class="credit">${art ? `Art: ${escapeHtml(art.artist || 'unknown')}${t.art ? '' : ' · automatic'} · Scryfall` : t.noArt ? 'No art' : 'No Scryfall art found for this name yet'}</span>
+      <button class="tog" data-te="art">Choose art</button></div></div>`; })()}
     <div class="field"><label class="lbl" for="ty-${i}">Type line</label><input id="ty-${i}" data-tf="types" value="${escapeHtml(t.types)}" autocomplete="off" placeholder="Creature — Human Soldier"></div>
     <div class="field"><label class="lbl" for="tx-${i}">Other abilities</label><input id="tx-${i}" data-tf="text" value="${escapeHtml(t.text)}" autocomplete="off" placeholder="Rules text or notes"></div>
     <div class="sec"><div class="lbl">Card type</div><div class="toggles">${KINDS.map(([k, l]) => tog(`data-te="kind" data-v="${k}"`, l, t.kind === k)).join('')}</div></div>
@@ -1418,6 +1614,7 @@ function editorAction(i, b) {
       });
     }
   }
+  else if (a === 'art') openArtPick(i, 'tok', s.id);
   else if (a === 'abil') useAbility(i, s.id, Number(b.dataset.n));
   else if (a === 'empower') tokAct(i, null, () => {
     const t = targetFor(i); t.loyalty += Number(b.dataset.n);
@@ -1472,7 +1669,8 @@ function cardHtml(t, i) {
   const desc = kws.length ? kws.join(', ') : t.text;
   const abils = t.kind === 'planeswalker' && t.abilities && t.abilities.length
     ? `<span class="abils">${t.abilities.map((ab, n) => `<button class="abil" data-abil="${n}" ${t.loyalty + ab.cost < 0 || t.activated ? 'disabled' : ''} aria-label="${fmtCost(ab.cost)}: ${escapeHtml(ab.text)}"><b>${fmtCost(ab.cost)}</b>${escapeHtml(ab.text)}</button>`).join('')}</span>` : '';
-  return `<div class="tok${t.tapped ? ' tapped' : ''}" data-tok="${t.id}" role="button" tabindex="0" style="--t:${COLORS[t.color] || COLORS.steel}" aria-label="${escapeHtml(tokLabel(t))}. Open to edit.">
+  const art = artFor(t);
+  return `<div class="tok${t.tapped ? ' tapped' : ''}${art ? ' has-art' : ''}" data-tok="${t.id}" role="button" tabindex="0" style="--t:${COLORS[t.color] || COLORS.steel}${art ? `;--art:url(&quot;${escapeHtml(art.url)}&quot;)` : ''}" aria-label="${escapeHtml(tokLabel(t))}. Open to edit.">
     <span class="tn">${escapeHtml(t.name)}</span><span class="tt">${escapeHtml(t.types)}</span>
     ${abils || (desc ? `<span class="tk">${escapeHtml(desc)}</span>` : '')}
     <span class="tf"><span class="tags">${t.qty > 1 ? `<span class="tq">×${t.qty}</span>` : ''}${tags.join('')}</span>${corner}</span>
@@ -1660,7 +1858,7 @@ document.getElementById('btn-start').addEventListener('click', () => {
   pushUndo(true);
   state = newState(state, pick.format, pick.life, first);
   addLog({ p: first, text: 'goes first' });
-  panels.forEach((_, i) => { closeDrawer(i); closePicker(i); closeEditor(i); closeAnthem(i); });
+  panels.forEach((_, i) => { closeDrawer(i); closePicker(i); closeEditor(i); closeAnthem(i); closeArtPick(i); });
   closeSheets(); commit();
   if (random) announce(state.players[first].name, 'goes first');
 });
