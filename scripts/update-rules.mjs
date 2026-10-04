@@ -7,10 +7,16 @@ const RULES_PAGE = 'https://magic.wizards.com/en/rules';
 const OUT = new URL('../rules.json', import.meta.url);
 
 async function download() {
-  const page = await (await fetch(RULES_PAGE, { headers: { 'User-Agent': 'mtg-life-tracker rules updater' } })).text();
-  const m = page.match(/https:\/\/media\.wizards\.com\/[^"'\s]+\.txt/i);
-  if (!m) throw new Error('No .txt link found on ' + RULES_PAGE);
-  const url = m[0].replace(/ /g, '%20');
+  const res0 = await fetch(RULES_PAGE, { headers: { 'User-Agent': 'Mozilla/5.0 (mtg-life-tracker rules updater)' } });
+  const page = (await res0.text()).replace(/\\\//g, '/').replace(/&amp;/g, '&');
+  // The link has appeared plain, JSON-escaped and with spaces in the file name; accept all of those
+  const links = [...page.matchAll(/https?:\/\/media\.wizards\.com\/[^"'<>()]*?\.txt/gi)].map(m => m[0]);
+  const url = (links.find(u => /CompRules/i.test(u)) || links[0] || '').replace(/ /g, '%20');
+  if (!url) {
+    const around = [...page.matchAll(/CompRules|Comprehensive Rules/gi)].slice(0, 5).map(m => page.slice(Math.max(0, m.index - 150), m.index + 150).replace(/\s+/g, ' '));
+    throw new Error(`No rules .txt link found on ${RULES_PAGE} (HTTP ${res0.status}, ${page.length} chars).\n${around.join('\n---\n')}`);
+  }
+  console.log('Rules file:', url);
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Download failed: ${res.status} ${url}`);
   return { buf: Buffer.from(await res.arrayBuffer()), url };
