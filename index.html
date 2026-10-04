@@ -207,6 +207,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
 .tok .pt.dead { color: var(--danger); }
 .tok .pt.loy { border-radius: 8px 8px 16px 16px; padding: 2px 10px 4px; }
 .tok.tapped { opacity: .55; }
+.tok { cursor: pointer; }
+.abils { display: flex; gap: 4px; flex-wrap: wrap; }
+.abil {
+  min-height: 34px; padding: 2px 8px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--t) 50%, transparent);
+  background: rgba(0, 0, 0, .4); font-size: 12px; font-weight: 700; color: var(--ink); text-align: left;
+}
+.abil b { font-family: var(--f-num); font-size: 15px; color: var(--t); margin-right: 3px; }
+.abil:disabled, .tog:disabled { opacity: .35; }
 .lbl { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .sec { display: flex; flex-direction: column; gap: 6px; }
 .ptitle { flex: 1; min-width: 0; font-family: var(--f-title); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: 16px; color: var(--p); }
@@ -643,8 +651,15 @@ function buildPanel(i) {
     const c = e.target.closest('.chip'); if (!c) return;
     if (c.hasAttribute('data-addtok')) openPicker(i); else openDrawer(i);
   });
-  el.querySelector('[data-cards]').addEventListener('click', e => {
-    const c = e.target.closest('[data-tok]'); if (c) openEditor(i, c.dataset.tok);
+  const cardsEl = el.querySelector('[data-cards]');
+  cardsEl.addEventListener('click', e => {
+    const ab = e.target.closest('[data-abil]');
+    const c = e.target.closest('[data-tok]'); if (!c) return;
+    if (ab) { if (!ab.disabled) useAbility(i, c.dataset.tok, Number(ab.dataset.abil)); return; }
+    openEditor(i, c.dataset.tok);
+  });
+  cardsEl.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-tok]')) { e.preventDefault(); openEditor(i, e.target.dataset.tok); }
   });
   el.querySelector('[data-tclear]').addEventListener('click', e => clearTokens(i, e.currentTarget));
   el.querySelector('[data-anths]').addEventListener('click', e => {
@@ -803,7 +818,7 @@ function passTurn() {
   if (state.active === state.first) state.turn += 1;
   state.players.forEach(p => {
     p.storm = 0;
-    p.tokens.forEach(t => { t.tempP = 0; t.tempT = 0; });   // "until end of turn" wears off
+    p.tokens.forEach(t => { t.tempP = 0; t.tempT = 0; t.activated = false; });   // "until end of turn" wears off; loyalty abilities ready again
   });
   // Untap step for the incoming player; their creatures are no longer summoning sick
   state.players[state.active].tokens.forEach(t => { t.tapped = false; t.sick = false; });
@@ -863,10 +878,15 @@ const PRESETS = {
     ench('Young Hero Role', 'Enchantment — Aura Role', 'Whenever enchanted creature attacks, if its toughness is 3 or less, put a +1/+1 counter on it.')
   ],
   walkers: [
-    { kind: 'planeswalker', name: 'Jace', color: 'blue', types: 'Planeswalker — Jace', loyalty: 3, text: 'Copy of Jace. Not legendary.' },
     { kind: 'planeswalker', name: 'Planeswalker', color: 'gold', types: 'Planeswalker', loyalty: 3, text: '' }
   ]
 };
+
+// Empower Jace N (Reality Fracture): put N loyalty on your Jace token, creating it with 0 loyalty first if needed.
+const JACE = { kind: 'planeswalker', name: 'Jace', color: 'blue', types: 'Planeswalker — Jace', loyalty: 0, text: '',
+  abilities: [{ cost: -1, text: 'Surveil 1' }, { cost: -3, text: 'Draw a card' }] };
+const isJace = t => t.kind === 'planeswalker' && /\bjace\b/i.test(`${t.name} ${t.types}`);
+const fmtCost = c => (c > 0 ? `+${c}` : c < 0 ? `−${-c}` : '0');
 
 const edit = [null, null];        // open token editor per player: { id, scope: 'all' | 'one' }
 const pickQty = [1, 1];
@@ -877,7 +897,8 @@ function makeToken(tpl, qty) {
   return {
     id: uid(), kind: tpl.kind, name: tpl.name, color: tpl.color || 'steel', types: tpl.types || '', text: tpl.text || '',
     keywords: [...(tpl.keywords || [])], power: tpl.power || 0, toughness: tpl.toughness || 0, loyalty: tpl.loyalty || 0,
-    sacLife: tpl.sacLife || 0, counters: 0, tempP: 0, tempT: 0, qty, tapped: false, sick: tpl.kind === 'creature'
+    sacLife: tpl.sacLife || 0, counters: 0, tempP: 0, tempT: 0, qty, tapped: false, sick: tpl.kind === 'creature',
+    abilities: (tpl.abilities || []).map(a => ({ ...a })), activated: false
   };
 }
 /* Anthems: static boosts that apply to every matching creature token a player controls */
@@ -928,7 +949,7 @@ function statLine(t, i) {
 // Stacks that end up identical (say, after untapping) merge back into one card.
 function sig(t) {
   return JSON.stringify([t.kind, t.name, t.color, t.types, t.text, [...t.keywords].sort(), t.power, t.toughness,
-    t.loyalty, t.sacLife, t.counters, t.tempP, t.tempT, t.tapped, t.sick]);
+    t.loyalty, t.sacLife, t.counters, t.tempP, t.tempT, t.tapped, t.sick, t.abilities || [], !!t.activated]);
 }
 function normalize(i) {
   const pl = state.players[i];
@@ -952,6 +973,43 @@ function targetFor(i) {
     return c;
   }
   return s;
+}
+// Peel one token off a group so a change only touches that one
+function splitOne(i, s) {
+  if (s.qty <= 1) return s;
+  const list = state.players[i].tokens, c = JSON.parse(JSON.stringify(s));
+  c.id = uid(); c.qty = 1; s.qty -= 1;
+  list.splice(list.indexOf(s) + 1, 0, c);
+  if (edit[i] && edit[i].id === s.id) edit[i] = { id: c.id, scope: 'all' };
+  return c;
+}
+function empowerJace(i, n) {
+  closePicker(i);
+  tokAct(i, null, () => {
+    const list = state.players[i].tokens;
+    let j = list.find(isJace), made = false;
+    if (!j) { j = makeToken(JACE, 1); list.push(j); made = true; }
+    j = splitOne(i, j);
+    j.loyalty += n;
+    return `empowers Jace ${n}${made ? ' (new Jace token)' : ''} · loyalty ${j.loyalty}`;
+  });
+}
+function useAbility(i, id, n) {
+  const s = state.players[i].tokens.find(t => t.id === id);
+  if (!s || !s.abilities || !s.abilities[n]) return;
+  tokAct(i, null, () => {
+    const ab = s.abilities[n];
+    if (s.loyalty + ab.cost < 0) return null;
+    const t = splitOne(i, s);
+    t.loyalty += ab.cost; t.activated = true;
+    let txt = `${t.name} ${fmtCost(ab.cost)}: ${ab.text}`;
+    if (t.loyalty <= 0) {
+      removeStack(i, t);
+      if (edit[i] && edit[i].id === t.id) edit[i] = null;
+      txt += ` · ${t.name} is out of loyalty and goes to the graveyard`;
+    }
+    return txt;
+  });
 }
 function removeStack(i, s) { const l = state.players[i].tokens; const k = l.indexOf(s); if (k >= 0) l.splice(k, 1); }
 
@@ -1002,7 +1060,7 @@ function saveKits() { try { localStorage.setItem(KITS_KEY, JSON.stringify(kits))
 const kitOf = i => kits.find(k => k.id === state.players[i].kit) || null;
 const pickUi = [{ naming: null }, { naming: null }];
 const tokTemplate = s => ({ kind: s.kind, name: s.name, color: s.color, types: s.types, text: s.text, keywords: [...s.keywords],
-  power: s.power, toughness: s.toughness, loyalty: s.loyalty, sacLife: s.sacLife });
+  power: s.power, toughness: s.toughness, loyalty: s.loyalty, sacLife: s.sacLife, abilities: (s.abilities || []).map(a => ({ ...a })) });
 const anthTemplate = a => ({ name: a.name, p: a.p, t: a.t, keywords: [...a.keywords], mode: a.mode, value: a.value });
 function addToList(list, tpl) {
   const k = JSON.stringify(tpl);
@@ -1048,9 +1106,14 @@ function openPicker(i, keepScroll) {
   const mine = myTokens.length ? `<div class="sec"><div class="lbl">My tokens</div><div class="picks">${myTokens.map((t, n) =>
     `<div class="pick-wrap">${pickBtn(t, `data-pk="mine" data-n="${n}"`)}<button class="unpick" data-pk="unmine" data-n="${n}" aria-label="Remove ${escapeHtml(t.name)} from My tokens">×</button></div>`).join('')}</div></div>` : '';
   const anths = `<div class="sec"><div class="lbl">Anthems</div><div class="picks">${ANTHEM_PRESETS.map((a, n) => anthBtn(a, `data-pk="anth" data-n="${n}"`)).join('')}</div></div>`;
+  const jace = state.players[i].tokens.find(isJace);
+  const empower = `<div class="sec"><div class="lbl">Empower Jace</div>
+    <p class="hint">${jace ? `Adds loyalty to your Jace (now ${jace.loyalty}).` : 'Creates your Jace token (−1: Surveil 1, −3: Draw a card), then adds loyalty.'}</p>
+    <div class="toggles">${[1, 2, 3, 4, 5].map(n => `<button class="tog" data-pk="empower" data-v="${n}">Empower ${n}</button>`).join('')}</div></div>`;
   el.innerHTML = `
     <div class="drawer-head"><span class="ptitle">Add tokens</span><button class="done" data-pk="close">Close</button></div>
     ${kitSec}
+    ${empower}
     <div class="row"><div class="rl"><strong>How many</strong><small>Created together as one group</small></div>
       <button class="step" data-pk="q" data-d="-1" aria-label="Fewer">−</button><span class="rv" data-pqv>${pickQty[i]}</span>
       <button class="step" data-pk="q" data-d="1" aria-label="More">+</button></div>
@@ -1076,6 +1139,7 @@ function pickerAction(i, b) {
   else if (a === 'mine') createTokens(i, myTokens[n], pickQty[i]);
   else if (a === 'unmine') { myTokens.splice(n, 1); saveMine(); openPicker(i); }
   else if (a === 'custom') createTokens(i, { kind: 'creature', name: 'Token', color: 'steel', power: 1, toughness: 1, types: 'Creature' }, pickQty[i], true);
+  else if (a === 'empower') empowerJace(i, Number(b.dataset.v));
   else if (a === 'anth') addAnthem(i, ANTHEM_PRESETS[n], ANTHEM_PRESETS[n].mode === 'type');
   else if (a === 'kittok') createTokens(i, kitOf(i).tokens[n], pickQty[i]);
   else if (a === 'kitanth') addAnthem(i, kitOf(i).anthems[n]);
@@ -1211,6 +1275,10 @@ function editorHtml(i, t) {
     num('tempP', 'Power this turn', 'Clears when the turn passes', (t.tempP > 0 ? '+' : '') + t.tempP),
     num('tempT', 'Toughness this turn', 'Clears when the turn passes', (t.tempT > 0 ? '+' : '') + t.tempT));
   if (isPW) rows.push(num('loyalty', 'Loyalty', t.loyalty === 0 ? 'At 0 it goes to the graveyard' : 'Loyalty counters', t.loyalty));
+  const abil = isPW && t.abilities && t.abilities.length ? `<div class="sec"><div class="lbl">Loyalty abilities${t.activated ? ' · used this turn' : ''}</div><div class="toggles">${t.abilities.map((ab, n) =>
+    `<button class="tog" data-te="abil" data-n="${n}" ${t.loyalty + ab.cost < 0 ? 'disabled' : ''}>${fmtCost(ab.cost)}: ${escapeHtml(ab.text)}</button>`).join('')}</div></div>` : '';
+  const emp = isJace(t) ? `<div class="sec"><div class="lbl">Empower Jace</div><div class="toggles">${[1, 2, 3].map(n =>
+    `<button class="tog" data-te="empower" data-n="${n}">Empower ${n}</button>`).join('')}</div></div>` : '';
   const swatches = Object.keys(COLORS).map(c =>
     `<button class="sw" data-te="color" data-v="${c}" style="--c:${COLORS[c]}" aria-label="${TOKEN_COLOR_NAMES[c]}" aria-pressed="${t.color === c}"></button>`).join('');
   return `
@@ -1222,6 +1290,7 @@ function editorHtml(i, t) {
     ${t.qty > 1 ? `<div class="toggles"><span class="lbl">Changes apply to</span>
       ${tog('data-te="scope" data-v="all"', `All ${t.qty}`, edit[i].scope === 'all')}${tog('data-te="scope" data-v="one"', 'Just one', edit[i].scope === 'one')}</div>` : ''}
     <div class="rows">${rows.join('')}</div>
+    ${abil}${emp}
     <div class="toggles">${tog('data-te="tapped"', 'Tapped', t.tapped)}${isC ? tog('data-te="sick"', 'Summoning sick', t.sick) : ''}</div>
     ${isC ? `<div class="sec"><div class="lbl">Abilities</div><div class="toggles">${KEYWORDS.map(k => tog(`data-te="kw" data-v="${k}"`, k, t.keywords.includes(k))).join('')}</div></div>` : ''}
     <div class="field"><label class="lbl" for="ty-${i}">Type line</label><input id="ty-${i}" data-tf="types" value="${escapeHtml(t.types)}" autocomplete="off" placeholder="Creature — Human Soldier"></div>
@@ -1271,6 +1340,11 @@ function editorAction(i, b) {
       });
     }
   }
+  else if (a === 'abil') useAbility(i, s.id, Number(b.dataset.n));
+  else if (a === 'empower') tokAct(i, null, () => {
+    const t = targetFor(i); t.loyalty += Number(b.dataset.n);
+    return `empowers Jace ${b.dataset.n} · loyalty ${t.loyalty}`;
+  });
   else if (a === 'kw') tokAct(i, null, () => {
     const t = targetFor(i), k = b.dataset.v, has = t.keywords.includes(k);
     t.keywords = has ? t.keywords.filter(x => x !== k) : [...t.keywords, k];
@@ -1309,6 +1383,7 @@ function cardHtml(t, i) {
   const au = auraFor(i, t), kws = allKw(t, au);
   const tags = [];
   if (t.tapped) tags.push('<span class="tag">Tapped</span>');
+  if (t.activated) tags.push('<span class="tag">Used</span>');
   if (t.kind === 'creature' && t.sick && !kws.includes('Haste')) tags.push('<span class="tag">New</span>');
   if (t.kind === 'creature' && t.counters) tags.push(`<span class="tag ${t.counters > 0 ? 'plus' : 'minus'}">${t.counters > 0 ? '+' : '−'}${Math.abs(t.counters)}/${t.counters > 0 ? '+' : '−'}${Math.abs(t.counters)}</span>`);
   let corner = '';
@@ -1317,11 +1392,13 @@ function cardHtml(t, i) {
     corner = `<span class="pt ${cls}">${effP(t, au)}/${effT(t, au)}</span>`;
   } else if (t.kind === 'planeswalker') corner = `<span class="pt loy">${t.loyalty}</span>`;
   const desc = kws.length ? kws.join(', ') : t.text;
-  return `<button class="tok${t.tapped ? ' tapped' : ''}" data-tok="${t.id}" style="--t:${COLORS[t.color] || COLORS.steel}" aria-label="${escapeHtml(tokLabel(t))}. Open to edit.">
+  const abils = t.kind === 'planeswalker' && t.abilities && t.abilities.length
+    ? `<span class="abils">${t.abilities.map((ab, n) => `<button class="abil" data-abil="${n}" ${t.loyalty + ab.cost < 0 || t.activated ? 'disabled' : ''} aria-label="${fmtCost(ab.cost)}: ${escapeHtml(ab.text)}"><b>${fmtCost(ab.cost)}</b>${escapeHtml(ab.text)}</button>`).join('')}</span>` : '';
+  return `<div class="tok${t.tapped ? ' tapped' : ''}" data-tok="${t.id}" role="button" tabindex="0" style="--t:${COLORS[t.color] || COLORS.steel}" aria-label="${escapeHtml(tokLabel(t))}. Open to edit.">
     <span class="tn">${escapeHtml(t.name)}</span><span class="tt">${escapeHtml(t.types)}</span>
-    ${desc ? `<span class="tk">${escapeHtml(desc)}</span>` : ''}
+    ${abils || (desc ? `<span class="tk">${escapeHtml(desc)}</span>` : '')}
     <span class="tf"><span class="tags">${t.qty > 1 ? `<span class="tq">×${t.qty}</span>` : ''}${tags.join('')}</span>${corner}</span>
-  </button>`;
+  </div>`;
 }
 function renderTokens(i) {
   const el = panels[i], list = state.players[i].tokens, anthems = state.players[i].anthems;

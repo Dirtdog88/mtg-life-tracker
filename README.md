@@ -21,6 +21,8 @@ A two-player Magic: The Gathering life tracker built for an iPad sitting beside 
 - Tokens: creatures, artifacts, enchantments and planeswalkers. Identical tokens group into one card with a count.
   Each token tracks +1/+1 and −1/−1 counters, until-end-of-turn boosts, abilities, creature types, tapped and
   summoning sickness. Passing the turn untaps and clears boosts. Custom tokens can be saved to **My tokens**.
+- Empower Jace (Reality Fracture): one tap adds loyalty to your Jace token, creating it first if needed.
+  The Jace card has −1 Surveil 1 and −3 Draw a card buttons; abilities are once per turn and Jace leaves at 0 loyalty.
 - Anthems: static boosts (+X/+X and granted abilities) for all creature tokens, one creature type or one color.
   Matching tokens show the boosted stats automatically.
 - Deck kits: save each deck's tokens and anthems as a kit. The chosen kit appears first in the token picker
