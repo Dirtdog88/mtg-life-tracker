@@ -368,7 +368,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
   .strip { padding: 6px 8px; gap: 4px; }
   .strip .group { gap: 4px; }
   .sbtn { min-width: 44px; height: 44px; padding: 0 8px; }
-  .clock { display: none; }
+  .clock, .mscore { display: none; }
 }
 
 /* ---------- Center sheets ---------- */
@@ -414,6 +414,55 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--p, var(--in
 .log .ld.neg { color: var(--danger); }
 .log .ld.pos { color: #84d9a4; }
 .empty { color: var(--muted); font-size: 14px; padding: 12px 0; }
+
+/* ---------- Match play, history and records ---------- */
+.board { position: relative; }
+.endbar {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 15;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center;
+  max-width: calc(100% - 32px); padding: 10px 12px 10px 16px; border-radius: 14px;
+  background: var(--strip); border: 1px solid var(--danger); box-shadow: 0 16px 40px rgba(0, 0, 0, .55);
+}
+.endbar span { font-weight: 600; font-size: 15px; }
+.mscore { font-family: var(--f-num); font-weight: 600; font-size: 17px; color: var(--muted); padding: 0 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.badge.pips { letter-spacing: .18em; background: none; border-color: transparent; font-size: 14px; padding: 2px 4px; }
+.sub-h { margin: 6px 0 0; font-family: var(--f-title); font-weight: 700; font-size: 15px; letter-spacing: .1em; text-transform: uppercase; }
+.name-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.name-row input {
+  width: 100%; height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(0, 0, 0, .3);
+  color: var(--ink); font-family: var(--f-ui); font-size: 16px; -webkit-user-select: text; user-select: text;
+}
+.name-row .toggles { margin-top: 6px; }
+.chip-s { min-height: 32px; padding: 0 10px; font-size: 12px; }
+/* Life graph: fixed seat colors validated for the dark surface (blue / orange), plus a dashed line and labels */
+.lg { position: relative; --s0: #3987e5; --s1: #d95926; }
+.lg svg { width: 100%; height: auto; display: block; overflow: visible; touch-action: pan-y; }
+.lg-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.lg-legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.lg-legend i.s0 { background: var(--s0); }
+.lg-legend i.s1 { background: repeating-linear-gradient(90deg, var(--s1) 0 6px, transparent 6px 9px); }
+.lg-tip {
+  position: absolute; top: 0; pointer-events: none; background: var(--strip); border: 1px solid var(--line); border-radius: 8px;
+  padding: 6px 10px; font-size: 12px; color: var(--ink); white-space: nowrap; box-shadow: 0 8px 24px rgba(0, 0, 0, .5); transform: translateX(-50%);
+}
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.tile { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .03); }
+.tile b { display: block; font-family: var(--f-num); font-weight: 700; font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tile span { font-size: 12px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.tile small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.rtable { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rtable th, .rtable td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rtable th { color: var(--muted); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+.rtable td.num { font-family: var(--f-num); font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tablewrap { overflow-x: auto; }
+.recap-line { color: var(--muted); font-size: 15px; margin: 0; }
+details.tbl summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.legal { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; }
+.legal b { font-weight: 700; }
+.legal.legal-ok b { color: #84d9a4; }
+.legal.legal-ban b { color: var(--danger); }
+.legal.legal-res b { color: var(--warn); }
+.legal.legal-no b { color: var(--muted); }
 
 /* ---------- Rules screen ---------- */
 .rules-sheet { width: min(980px, 100%); height: 100%; max-height: 100%; padding: 0; gap: 0; overflow: hidden; }
@@ -484,6 +533,7 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
   <div class="board">
     <section class="player" id="p0" aria-label="Player 1"></section>
     <section class="player" id="p1" aria-label="Player 2"></section>
+    <div class="endbar" id="endbar" role="status" hidden></div>
   </div>
 
   <nav class="strip" aria-label="Table controls">
@@ -496,6 +546,7 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
       </button>
     </div>
     <div class="group">
+      <span class="mscore" id="match-score" hidden></span>
       <span class="clock" id="clock" aria-label="Game time">0:00</span>
       <button class="pass" id="btn-pass" aria-label="Pass turn">
         <span id="turn-label">Turn 1</span><span class="who" id="turn-who"></span>
@@ -511,8 +562,8 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
       <button class="sbtn" id="btn-rules" aria-label="Rules">
         <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span class="t">Rules</span>
       </button>
-      <button class="sbtn" id="btn-log" aria-label="Life history">
-        <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg><span class="t">Log</span>
+      <button class="sbtn" id="btn-log" aria-label="History and records">
+        <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg><span class="t">History</span>
       </button>
     </div>
   </nav>
@@ -522,8 +573,15 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
 <!-- New game -->
 <div class="scrim" id="sheet-new" hidden>
   <div class="sheet" role="dialog" aria-labelledby="new-title">
-    <h2 id="new-title">New game</h2>
-    <p class="sub">Names and colors carry over. Everything else resets.</p>
+    <h2 id="new-title">Game</h2>
+    <div id="ng-result"></div>
+    <h3 class="sub-h">New match</h3>
+    <p class="sub" id="ng-note">Colors and photos carry over. Life, counters and tokens reset.</p>
+    <div class="label">Players</div>
+    <div class="name-row">
+      <div><input id="ng-n0" maxlength="18" autocomplete="off" aria-label="Left or top player name"><div class="toggles" id="ng-known0"></div></div>
+      <div><input id="ng-n1" maxlength="18" autocomplete="off" aria-label="Right or bottom player name"><div class="toggles" id="ng-known1"></div></div>
+    </div>
     <div class="label">Format</div>
     <div class="opts" id="formats"></div>
     <div class="label">Starting life</div>
@@ -532,11 +590,15 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
       <span class="v" id="sl-value">40</span>
       <button class="step" id="sl-plus" aria-label="More starting life">+</button>
     </div>
+    <div class="label">Match</div>
+    <div class="opts" id="bo-opts"></div>
+    <div class="label">Decks</div>
+    <div id="deck-opts"></div>
     <div class="label">Who goes first</div>
     <div class="opts" id="first-opts"></div>
     <div class="sheet-actions">
       <button class="btn" data-close>Cancel</button>
-      <button class="btn primary" id="btn-start">Start game</button>
+      <button class="btn primary" id="btn-start">Start match</button>
     </div>
   </div>
 </div>
@@ -555,12 +617,27 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
   </div>
 </div>
 
-<!-- Log -->
+<!-- Game recap (after each game) -->
+<div class="scrim" id="sheet-recap" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="recap-title" style="width:min(720px,100%)">
+    <div id="recap-body"></div>
+  </div>
+</div>
+
+<!-- History: this game, records, matches, backup -->
 <div class="scrim" id="sheet-log" hidden>
-  <div class="sheet" role="dialog" aria-labelledby="log-title">
-    <h2 id="log-title">Game history</h2>
-    <ul class="log" id="log-list"></ul>
-    <div class="sheet-actions"><button class="btn" data-close>Close</button></div>
+  <div class="sheet rules-sheet" role="dialog" aria-labelledby="log-title">
+    <div class="rules-head"><h2 id="log-title">History</h2><span class="rules-ver" id="hist-sub"></span><button class="btn" data-close>Close</button></div>
+    <div class="rtabs" role="tablist">
+      <button class="tog rtab" role="tab" data-htab="game">This game</button>
+      <button class="tog rtab" role="tab" data-htab="records">Records</button>
+      <button class="tog rtab" role="tab" data-htab="matches">Matches</button>
+      <button class="tog rtab" role="tab" data-htab="backup">Backup</button>
+    </div>
+    <section class="rpane" data-hpane="game"><div id="game-live"></div><ul class="log" id="log-list"></ul></section>
+    <section class="rpane" data-hpane="records" hidden><div id="rec-body"></div></section>
+    <section class="rpane" data-hpane="matches" hidden><div id="m-body"></div></section>
+    <section class="rpane" data-hpane="backup" hidden><div id="b-body"></div></section>
   </div>
 </div>
 
@@ -663,11 +740,12 @@ const COLORS = {
 const COLOR_NAMES = { white: 'White', blue: 'Blue', black: 'Black', red: 'Red', green: 'Green', gold: 'Gold', steel: 'Colorless' };
 const PBG = { white: '#29251c', blue: '#122138', black: '#1c1626', red: '#33150f', green: '#10281b', gold: '#2a210e', steel: '#1d2128' };
 const FORMATS = [
-  { id: 'standard', name: 'Constructed', note: 'Standard, Pioneer, Modern', life: 20, commander: false },
+  { id: 'constructed', name: 'Constructed', note: '60 cards · Historic, Standard, any sets', life: 20, commander: false },
+  { id: 'limited', name: 'Limited', note: '40 cards · draft or sealed', life: 20, commander: false },
   { id: 'commander', name: 'Commander', note: 'Duel or casual EDH', life: 40, commander: true },
-  { id: 'brawl', name: 'Brawl', note: 'Two-player Brawl', life: 25, commander: true },
-  { id: 'limited', name: 'Limited', note: 'Draft or sealed', life: 20, commander: false }
+  { id: 'brawl', name: 'Brawl', note: 'Two-player Brawl', life: 25, commander: true }
 ];
+const FORMAT_NAME = id => (FORMATS.find(f => f.id === id) || FORMATS[0]).name;
 // Counters every player carries. `lethal` marks a loss; `life` means it also costs life.
 const COUNTERS = [
   { key: 'poison', label: 'Poison', note: '10 and you lose', lethal: 10, near: 7 },
@@ -688,7 +766,9 @@ function newState(prev, formatId, life, first) {
     // The chosen deck kit carries over to the next game; tokens and anthems do not
     players: [0, 1].map(k => Object.assign(freshPlayer(p[k].name, p[k].color, life), { kit: p[k].kit || null })),
     first, active: first, turn: 1, monarch: null, initiative: null, dayNight: null,
-    startedAt: Date.now(), log: []
+    startedAt: Date.now(), log: [],
+    // Life after every change, as [turn, active player, life 0, life 1], for the game recap graph
+    trail: [[1, first, life, life]], over: false
   };
 }
 
@@ -768,6 +848,7 @@ function buildPanel(i) {
         <span class="badge turn" data-b="turn" hidden>Your turn</span>
         <span class="badge" data-b="monarch" hidden>Monarch</span>
         <span class="badge" data-b="initiative" hidden>Initiative</span>
+        <span class="badge pips" data-b="pips" hidden></span>
       </div>
       <div class="bottom">
         <div class="tray" data-tray hidden>
@@ -946,7 +1027,15 @@ function addLog(entry) {
   if (state.log.length > 500) { state.log.shift(); state.logBase = (state.logBase || 0) + 1; }
   return entry;
 }
-function commit() { save(); render(); }
+function commit() { trackLife(); save(); render(); }
+function trackLife() {
+  const t = state.trail; if (!t) return;
+  const l0 = state.players[0].life, l1 = state.players[1].life, last = t[t.length - 1];
+  if (!last || last[0] !== state.turn || last[1] !== state.active || last[2] !== l0 || last[3] !== l1) {
+    t.push([state.turn, state.active, l0, l1]);
+    if (t.length > 1500) t.splice(1, t.length - 1500);
+  }
+}
 
 // Rapid changes to the same stat by the same player within 2 s merge into one log line and one undo.
 function burstFor(i, key) {
@@ -988,6 +1077,7 @@ function flashDelta(i, d) {
 }
 
 function passTurn() {
+  if (state.over) { openRecap(); return; }
   pushUndo();
   const from = state.active;
   state.active = 1 - state.active;
@@ -1015,6 +1105,7 @@ function undo() {
   delete snap.logEnd;
   state = snap;
   burst = null;
+  reconcileHistory();
   deltaShown[0] = deltaShown[1] = 0;
   renderDelta(0); renderDelta(1);
   commit();
@@ -1438,21 +1529,21 @@ function openPicker(i, keepScroll) {
   const el = panels[i].querySelector('[data-tokpick]');
   const top = el.scrollTop;
   const kit = kitOf(i), ui = pickUi[i];
-  const kitBtns = [`<button class="tog" data-pk="kit" data-v="" aria-pressed="${!kit}">No kit</button>`]
+  const kitBtns = [`<button class="tog" data-pk="kit" data-v="" aria-pressed="${!kit}">No deck</button>`]
     .concat(kits.map(k => `<button class="tog" data-pk="kit" data-v="${k.id}" aria-pressed="${!!kit && kit.id === k.id}">${escapeHtml(k.name)}</button>`))
-    .concat(`<button class="tog" data-pk="kitnew">+ New kit</button>`).join('');
+    .concat(`<button class="tog" data-pk="kitnew">+ New deck</button>`).join('');
   const naming = ui.naming ? `<div class="kit-row">
-      <input data-kitname maxlength="30" autocomplete="off" placeholder="Deck name, e.g. Krenko" value="${ui.naming === 'rename' && kit ? escapeHtml(kit.name) : ''}" aria-label="Deck kit name">
+      <input data-kitname maxlength="30" autocomplete="off" placeholder="Deck name, e.g. Krenko" value="${ui.naming === 'rename' && kit ? escapeHtml(kit.name) : ''}" aria-label="Deck name">
       <button class="tog" data-pk="kitsave">Save</button><button class="tog" data-pk="kitcancel">Cancel</button></div>` : '';
   let kitBody = '';
   if (kit && !ui.naming) {
     const items = kit.tokens.map((t, n) => `<div class="pick-wrap">${pickBtn(t, `data-pk="kittok" data-n="${n}"`)}<button class="unpick" data-pk="unkittok" data-n="${n}" aria-label="Remove ${escapeHtml(t.name)} from ${escapeHtml(kit.name)}">×</button></div>`)
       .concat(kit.anthems.map((a, n) => `<div class="pick-wrap">${anthBtn(a, `data-pk="kitanth" data-n="${n}"`)}<button class="unpick" data-pk="unkitanth" data-n="${n}" aria-label="Remove ${escapeHtml(a.name)} from ${escapeHtml(kit.name)}">×</button></div>`));
     kitBody = (items.length ? `<div class="picks">${items.join('')}</div>`
-      : `<p class="hint">This kit is empty. Open any token or anthem on the board and tap “Add to ${escapeHtml(kit.name)}”.</p>`)
-      + `<div class="toggles"><button class="tog" data-pk="kitrename">Rename</button><button class="tog danger" data-pk="kitdel">Delete kit</button></div>`;
+      : `<p class="hint">No tokens or anthems saved to this deck yet. Open any token or anthem on the board and tap “Add to ${escapeHtml(kit.name)}”.</p>`)
+      + `<div class="toggles"><button class="tog" data-pk="kitrename">Rename</button><button class="tog danger" data-pk="kitdel">Delete deck</button></div>`;
   }
-  const kitSec = `<div class="sec"><div class="lbl">Deck kit</div><div class="toggles">${kitBtns}</div>${naming}${kitBody}</div>`;
+  const kitSec = `<div class="sec"><div class="lbl">Your deck</div><div class="toggles">${kitBtns}</div>${naming}${kitBody}</div>`;
   const group = (title, key) => `<div class="sec"><div class="lbl">${title}</div><div class="picks">${PRESETS[key].map((t, n) => pickBtn(t, `data-pk="preset" data-g="${key}" data-n="${n}"`)).join('')}</div></div>`;
   const mine = myTokens.length ? `<div class="sec"><div class="lbl">My tokens</div><div class="picks">${myTokens.map((t, n) =>
     `<div class="pick-wrap">${pickBtn(t, `data-pk="mine" data-n="${n}"`)}<button class="unpick" data-pk="unmine" data-n="${n}" aria-label="Remove ${escapeHtml(t.name)} from My tokens">×</button></div>`).join('')}</div></div>` : '';
@@ -1504,7 +1595,7 @@ function pickerAction(i, b) {
   else if (a === 'kitdel') {
     if (!b.classList.contains('armed')) {
       b.classList.add('armed'); b.textContent = 'Tap to delete';
-      setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.textContent = 'Delete kit'; } }, 3000);
+      setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.textContent = 'Delete deck'; } }, 3000);
       return;
     }
     const id = state.players[i].kit;
@@ -1852,6 +1943,9 @@ function render() {
     el.querySelector('[data-b="turn"]').hidden = state.active !== i;
     el.querySelector('[data-b="monarch"]').hidden = state.monarch !== i;
     el.querySelector('[data-b="initiative"]').hidden = state.initiative !== i;
+    const m = state.match, pips = el.querySelector('[data-b="pips"]');
+    pips.hidden = !m || m.bestOf < 2;
+    if (m && m.bestOf > 1) { const n = needWins(m); pips.textContent = '●'.repeat(Math.min(n, m.wins[i])) + '○'.repeat(Math.max(0, n - m.wins[i])); pips.setAttribute('aria-label', `${m.wins[i]} game${m.wins[i] === 1 ? '' : 's'} won`); }
 
     const reason = lossReason(p);
     el.classList.toggle('lost', !!reason);
@@ -1887,9 +1981,13 @@ function render() {
   const pass = document.getElementById('btn-pass');
   pass.style.setProperty('--accent', COLORS[activeColor]);
   pass.style.setProperty('--accent-ink', PBG[activeColor]);
-  document.getElementById('turn-who').textContent = state.players[state.active].name;
-  document.getElementById('turn-label').textContent = `Turn ${state.turn}`;
-  pass.setAttribute('aria-label', `Turn ${state.turn}, ${state.players[state.active].name} to play. Pass turn.`);
+  document.getElementById('turn-who').textContent = state.over ? 'Next game' : state.players[state.active].name;
+  document.getElementById('turn-label').textContent = state.over ? (state.match.over ? 'Match over' : 'Game over') : `Turn ${state.turn}`;
+  pass.setAttribute('aria-label', state.over ? 'Game over. Open the game recap.' : `Turn ${state.turn}, ${state.players[state.active].name} to play. Pass turn.`);
+  const ms = document.getElementById('match-score'), m = state.match;
+  ms.hidden = !m || m.bestOf < 2;
+  if (m && m.bestOf > 1) ms.textContent = `Bo${m.bestOf} · G${Math.min(m.games.length + (state.over ? 0 : 1), m.bestOf + m.draws)} · ${m.wins[0]}–${m.wins[1]}`;
+  renderEndBar();
   document.getElementById('btn-undo').disabled = undoStack.length === 0;
   const dn = document.getElementById('dn-label');
   dn.textContent = state.dayNight === 'day' ? 'Day' : state.dayNight === 'night' ? 'Night' : 'Day/Night';
@@ -1914,13 +2012,47 @@ document.querySelectorAll('.scrim').forEach(s => {
   s.addEventListener('click', e => { if (e.target === s || e.target.closest('[data-close]')) closeSheets(); });
 });
 
-let pick = { format: 'commander', life: 40, first: 'random' };
+let pick = { format: 'constructed', life: 20, first: 'random', bestOf: 1, names: ['', ''], decks: [null, null], newDeck: null };
+const BO_KEY = 'mtg-duel-bestof-v1';
+function knownNames() {
+  const seen = new Map();
+  hist.games.forEach(g => g.players.forEach(n => seen.set(n, (seen.get(n) || 0) + 1)));
+  return [...seen.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]);
+}
 function renderNewSheet() {
+  const m = state.match, names = state.players.map(p => p.name);
+  const res = document.getElementById('ng-result');
+  if (!state.over && !m.over) {
+    res.innerHTML = `<h3 class="sub-h">Game ${m.games.length + 1} result</h3>
+      <p class="sub">Who won this game? Recording it ${m.bestOf > 1 ? 'updates the match score and ' : ''}saves it to your records.</p>
+      <div class="opts"><button class="opt" data-result="0"><strong>${escapeHtml(names[0])} won</strong></button>
+      <button class="opt" data-result="1"><strong>${escapeHtml(names[1])} won</strong></button>
+      <button class="opt" data-result="draw"><strong>Draw</strong><span>No winner this game</span></button></div>`;
+  } else if (state.over && !m.over) {
+    res.innerHTML = `<div class="opts"><button class="opt" data-openrecap><strong>Continue the match</strong><span>Game ${m.games.length + 1} is next</span></button></div>`;
+  } else res.innerHTML = '';
+  document.getElementById('ng-note').textContent = m.games.length && !m.over
+    ? `The current match (${m.wins[0]}–${m.wins[1]}) will be saved as unfinished. Colors and photos carry over.`
+    : 'Colors and photos carry over. Life, counters and tokens reset.';
+  [0, 1].forEach(i => {
+    const inp = document.getElementById('ng-n' + i);
+    if (document.activeElement !== inp) inp.value = pick.names[i];
+    document.getElementById('ng-known' + i).innerHTML = knownNames().filter(n => n !== pick.names[0] && n !== pick.names[1]).slice(0, 6)
+      .map(n => `<button class="tog chip-s" data-known="${i}" data-name="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
+  });
+  document.getElementById('bo-opts').innerHTML = [[1, 'Single game', 'One game'], [3, 'Best of 3', 'First to 2 wins'], [5, 'Best of 5', 'First to 3 wins']]
+    .map(([v, t, n]) => `<button class="opt" data-bo="${v}" aria-pressed="${pick.bestOf === v}"><strong>${t}</strong><span>${n}</span></button>`).join('');
+  document.getElementById('deck-opts').innerHTML = [0, 1].map(i => `<div class="sec"><div class="hint">${escapeHtml(pick.names[i] || names[i])}</div><div class="toggles">
+      <button class="tog chip-s" data-deck="${i}" data-v="" aria-pressed="${!pick.decks[i]}">No deck</button>
+      ${kits.map(k => `<button class="tog chip-s" data-deck="${i}" data-v="${k.id}" aria-pressed="${pick.decks[i] === k.id}">${escapeHtml(k.name)}</button>`).join('')}
+      <button class="tog chip-s" data-newdeck="${i}">+ New deck</button></div>
+      ${pick.newDeck === i ? `<div class="kit-row"><input id="ng-deckname" maxlength="30" autocomplete="off" placeholder="Deck name, e.g. Izzet Prowess" aria-label="New deck name"><button class="tog" data-savedeck="${i}">Save</button></div>` : ''}</div>`).join('');
+  const nd = document.getElementById('ng-deckname'); if (nd) nd.focus();
   document.getElementById('formats').innerHTML = FORMATS.map(f =>
     `<button class="opt" data-format="${f.id}" aria-pressed="${pick.format === f.id}"><strong>${f.name} · ${f.life}</strong><span>${f.note}</span></button>`).join('');
   document.getElementById('sl-value').textContent = pick.life;
-  const names = state.players.map(p => p.name);
-  document.getElementById('first-opts').innerHTML = [['random', 'Random', 'Pick for us'], ['0', names[0], 'Left / top'], ['1', names[1], 'Right / bottom']]
+  const shown = [0, 1].map(i => (pick.names[i] || '').trim() || names[i]);
+  document.getElementById('first-opts').innerHTML = [['random', 'Random', 'Pick for us'], ['0', shown[0], 'Left / top'], ['1', shown[1], 'Right / bottom']]
     .map(([v, t, n]) => `<button class="opt" data-first="${v}" aria-pressed="${pick.first === v}"><strong>${escapeHtml(t)}</strong><span>${n}</span></button>`).join('');
 }
 document.getElementById('formats').addEventListener('click', e => {
@@ -1933,16 +2065,42 @@ document.getElementById('first-opts').addEventListener('click', e => {
 });
 document.getElementById('sl-minus').addEventListener('click', () => { pick.life = Math.max(1, pick.life - 5); renderNewSheet(); });
 document.getElementById('sl-plus').addEventListener('click', () => { pick.life += 5; renderNewSheet(); });
-document.getElementById('btn-new').addEventListener('click', () => {
-  pick = { format: state.format, life: state.startLife, first: 'random' };
+function openNewSheet() {
+  let bo = 1; try { bo = Number(localStorage.getItem(BO_KEY)) || 1; } catch (e) { /* default */ }
+  pick = { format: state.format, life: state.startLife, first: 'random', bestOf: bo, names: state.players.map(p => p.name),
+    decks: state.players.map(p => p.kit || null), newDeck: null };
   renderNewSheet(); openSheet('sheet-new');
+}
+document.getElementById('btn-new').addEventListener('click', openNewSheet);
+document.getElementById('sheet-new').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset;
+  if (d.result) { closeSheets(); recordResult(d.result === 'draw' ? 'draw' : Number(d.result)); }
+  else if ('openrecap' in d) { closeSheets(); openRecap(); }
+  else if (d.known) { pick.names[Number(d.known)] = d.name; renderNewSheet(); }
+  else if (d.bo) { pick.bestOf = Number(d.bo); renderNewSheet(); }
+  else if (d.deck) { pick.decks[Number(d.deck)] = d.v || null; renderNewSheet(); }
+  else if (d.newdeck) { pick.newDeck = Number(d.newdeck); renderNewSheet(); }
+  else if (d.savedeck) {
+    const name = document.getElementById('ng-deckname').value.trim();
+    if (!name) { document.getElementById('ng-deckname').focus(); return; }
+    const k = { id: uid(), name, tokens: [], anthems: [] }; kits.push(k); saveKits();
+    pick.decks[Number(d.savedeck)] = k.id; pick.newDeck = null; renderNewSheet();
+  }
+});
+['ng-n0', 'ng-n1'].forEach((id, i) => document.getElementById(id).addEventListener('input', e => { pick.names[i] = e.target.value; renderNewSheet(); }));
+document.getElementById('sheet-new').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'ng-deckname') { e.preventDefault(); document.querySelector('[data-savedeck]').click(); }
 });
 document.getElementById('btn-start').addEventListener('click', () => {
   const random = pick.first === 'random';
   const first = random ? Math.floor(Math.random() * 2) : Number(pick.first);
+  try { localStorage.setItem(BO_KEY, String(pick.bestOf)); } catch (e) { /* ignore */ }
   pushUndo(true);
   state = newState(state, pick.format, pick.life, first);
-  addLog({ p: first, text: 'goes first' });
+  state.match = newMatch(pick.bestOf, first);
+  state.players.forEach((p, i) => { p.name = (pick.names[i] || '').trim() || p.name; p.kit = pick.decks[i]; });
+  addLog({ p: first, text: pick.bestOf > 1 ? `goes first in game 1 of a best of ${pick.bestOf}` : 'goes first' });
   panels.forEach((_, i) => { closeDrawer(i); closePicker(i); closeEditor(i); closeAnthem(i); closeArtPick(i); });
   closeSheets(); commit();
   if (random) announce(state.players[first].name, 'goes first');
@@ -1968,7 +2126,7 @@ document.getElementById('sheet-dice').addEventListener('click', e => {
   addLog({ p: null, text: `${small}: ${big}` }); save();
   announce(big, small);
 });
-document.getElementById('btn-log').addEventListener('click', () => { renderLog(); openSheet('sheet-log'); });
+
 
 function renderLog() {
   const list = document.getElementById('log-list');
@@ -2118,7 +2276,7 @@ const GUIDES = [
     refs: ['702.15b', '702.2b', '702.2c', '704.5h', '702.15f', '702.2f'] }
 ];
 
-/* ---------- Rules screen ---------- */
+/* ---------- Rules screen (script) ---------- */
 // The Comprehensive Rules live in rules.json (kept current by .github/workflows/update-rules.yml) and work offline.
 const NAV_KEY = 'mtg-duel-rulesnav-v1', CARDS_KEY = 'mtg-duel-cards-v1', HOUSE_KEY = 'mtg-duel-house-v1', DRAFT_KEY = 'mtg-duel-dispute-v1';
 const loadJSON = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
@@ -2331,10 +2489,29 @@ function renderRulesTab() {
   else renderHouse();
 }
 
+/* Format legality from Scryfall */
+const LEGAL_NAMES = { standard: 'Standard', pioneer: 'Pioneer', modern: 'Modern', legacy: 'Legacy', vintage: 'Vintage', pauper: 'Pauper',
+  historic: 'Historic', timeless: 'Timeless', alchemy: 'Alchemy', explorer: 'Explorer', brawl: 'Brawl', standardbrawl: 'Standard Brawl',
+  commander: 'Commander', oathbreaker: 'Oathbreaker', penny: 'Penny Dreadful', premodern: 'Premodern', oldschool: 'Old School',
+  duel: 'Duel Commander', gladiator: 'Gladiator', paupercommander: 'Pauper Commander', predh: 'PreDH', future: 'Future Standard' };
+const LEGAL_STATUS = { legal: ['Legal', 'legal-ok'], not_legal: ['Not legal', 'legal-no'], banned: ['Banned', 'legal-ban'], restricted: ['Restricted', 'legal-res'] };
+let legalPicking = false;
+function legalFormats() { return Array.isArray(rprefs.formats) && rprefs.formats.length ? rprefs.formats : ['historic', 'standard', 'pioneer', 'modern']; }
+function legalHtml(c) {
+  if (!c.legal) return `<div class="sec"><div class="lbl">Legality</div><p class="hint">Not saved for this card yet.</p>
+    <div class="toggles"><button class="tog" data-cardname="${escapeHtml(c.name)}">Check legality (needs internet)</button></div></div>`;
+  const chips = legalFormats().filter(k => c.legal[k]).map(k => { const [t, cls] = LEGAL_STATUS[c.legal[k]] || [c.legal[k], 'legal-no'];
+    return `<span class="legal ${cls}">${escapeHtml(LEGAL_NAMES[k] || k)} <b>${t}</b></span>`; }).join('');
+  const chooser = legalPicking ? `<div class="toggles">${Object.keys(c.legal).map(k =>
+    `<button class="tog chip-s" data-legalfmt="${k}" aria-pressed="${legalFormats().includes(k)}">${escapeHtml(LEGAL_NAMES[k] || k)}</button>`).join('')}</div>` : '';
+  return `<div class="sec"><div class="lbl">Legality</div><div class="toggles">${chips}<button class="tog chip-s" data-legalpick>${legalPicking ? 'Done' : 'Formats…'}</button></div>${chooser}</div>`;
+}
+
 /* Cards: Oracle text and official rulings from Scryfall, remembered for offline use */
 function trimCard(c) {
   const face = x => ({ name: x.name, mana_cost: x.mana_cost || '', type_line: x.type_line || '', oracle_text: x.oracle_text || '', power: x.power, toughness: x.toughness, loyalty: x.loyalty });
-  return { name: c.name, keywords: c.keywords || [], faces: c.card_faces && !c.oracle_text ? c.card_faces.map(face) : [face(c)], uri: c.scryfall_uri || '' };
+  return { name: c.name, keywords: c.keywords || [], faces: c.card_faces && !c.oracle_text ? c.card_faces.map(face) : [face(c)], uri: c.scryfall_uri || '',
+    legal: c.legalities || null };
 }
 async function lookupCard(name, token) {
   const body = document.getElementById('cq-body');
@@ -2368,6 +2545,7 @@ function renderCards() {
     body.innerHTML = `<div class="rbar"><button class="tog" data-cardback>Back</button><button class="tog" data-cite="card:${escapeHtml(c.name)}" data-label="Card: ${escapeHtml(c.name)}">Cite in dispute</button></div>
       <div class="rview">${c.faces.map(f => `<span class="crumb">${escapeHtml(f.type_line)}</span><h3>${escapeHtml(f.name)} <span class="credit">${escapeHtml(f.mana_cost)}</span></h3>
         <div class="card-oracle">${escapeHtml(f.oracle_text)}</div>${f.power !== undefined ? `<p class="credit">${escapeHtml(f.power)}/${escapeHtml(f.toughness)}</p>` : ''}${f.loyalty !== undefined ? `<p class="credit">Loyalty ${escapeHtml(f.loyalty)}</p>` : ''}`).join('')}
+        ${legalHtml(c)}
         ${kws ? `<div class="sec"><div class="lbl">Keyword rules</div><div class="toggles">${kws}</div></div>` : ''}
         <div class="sec"><div class="lbl">Official rulings (${c.rulings.length})</div>
         ${c.rulings.length ? c.rulings.slice().reverse().map((r, n) => `<div class="ruling"><p><small>${escapeHtml(r.date || '')}${r.source === 'wotc' ? ' · Wizards of the Coast' : ''}</small>${linkify(r.text)}</p>
@@ -2512,6 +2690,12 @@ function renderHouse() {
     else if (d.tokcard) lookupCard(d.tokcard, true);
     else if (d.savedcard) { rui.card = d.savedcard; switchRulesTab('cards'); }
     else if ('cardback' in d) { rui.card = null; renderCards(); }
+    else if ('legalpick' in d) { legalPicking = !legalPicking; renderCards(); }
+    else if (d.legalfmt) {
+      const cur = legalFormats(), k = d.legalfmt;
+      rprefs.formats = cur.includes(k) ? cur.filter(x => x !== k) : [...cur, k];
+      saveJSON(NAV_KEY, rprefs); renderCards();
+    }
     else if (d.guide) { rui.guide = d.guide; renderGuides(); }
     else if ('guideback' in d) { rui.guide = null; renderGuides(); }
     else if (d.dgo) switchRulesTab(d.dgo);
@@ -2554,6 +2738,386 @@ function renderHouse() {
   });
 })();
 
+/* ---------- Matches, records and history ---------- */
+const HIST_KEY = 'mtg-duel-history-v1';
+let hist = loadJSON(HIST_KEY, { games: [], matches: [] });
+const saveHist = () => saveJSON(HIST_KEY, hist);
+function newMatch(bestOf, first) {
+  // `chooser` decides play/draw for the next game: the loser of the last game; after a draw, whoever chose last time
+  return { id: uid(), bestOf, wins: [0, 0], draws: 0, games: [], chooser: first, over: false, winner: null, started: Date.now() };
+}
+const needWins = m => Math.floor(m.bestOf / 2) + 1;
+const deckNameOf = i => { const k = kits.find(x => x.id === state.players[i].kit); return k ? k.name : ''; };
+function matchRecord() {
+  const m = state.match;
+  return { id: m.id, date: new Date(m.started).toISOString(), format: state.format, bestOf: m.bestOf,
+    players: state.players.map(p => p.name), decks: [deckNameOf(0), deckNameOf(1)], wins: m.wins.slice(), draws: m.draws,
+    winner: m.winner, over: m.over, games: m.games.slice() };
+}
+// Undo can take back a recorded result: drop records the restored game state no longer knows about
+function reconcileHistory() {
+  const m = state.match; if (!m) return;
+  const keep = new Set(m.games);
+  const before = hist.games.length;
+  hist.games = hist.games.filter(g => g.matchId !== m.id || keep.has(g.id));
+  const known = new Set(hist.games.map(g => g.matchId));
+  hist.matches = hist.matches.filter(x => known.has(x.id));
+  const rec = hist.matches.find(x => x.id === m.id);
+  if (rec) Object.assign(rec, matchRecord());
+  if (before !== hist.games.length || rec) saveHist();
+}
+function recordResult(w) {
+  if (state.over) return;
+  pushUndo();
+  const m = state.match;
+  const g = { id: uid(), matchId: m.id, n: m.games.length + 1, date: new Date().toISOString(), format: state.format,
+    players: state.players.map(p => p.name), decks: [deckNameOf(0), deckNameOf(1)], winner: w, first: state.first,
+    turns: state.turn, secs: Math.round((Date.now() - state.startedAt) / 1000), startLife: state.startLife, trail: state.trail.slice() };
+  m.games.push(g.id);
+  if (w === 'draw') m.draws += 1; else { m.wins[w] += 1; m.chooser = 1 - w; }
+  if (w !== 'draw' && m.wins[w] >= needWins(m)) { m.over = true; m.winner = w; }
+  else if (m.games.length - m.draws >= m.bestOf) { m.over = true; m.winner = m.wins[0] === m.wins[1] ? 'draw' : (m.wins[0] > m.wins[1] ? 0 : 1); }
+  state.over = true; state.result = w;
+  addLog({ p: w === 'draw' ? null : w, text: w === 'draw' ? `Game ${g.n} is a draw` : `wins game ${g.n}` });
+  hist.games.push(g);
+  const rec = hist.matches.find(x => x.id === m.id);
+  if (rec) Object.assign(rec, matchRecord()); else hist.matches.push(matchRecord());
+  saveHist();
+  commit();
+  openRecap();
+}
+function nextGame(chooserPlays) {
+  const m = state.match;
+  const first = chooserPlays ? m.chooser : 1 - m.chooser;
+  pushUndo(true);
+  state = newState(state, state.format, state.startLife, first);
+  state.match = m;
+  addLog({ p: first, text: `goes first in game ${m.games.length + 1}` });
+  panels.forEach((_, i) => { closeDrawer(i); closePicker(i); closeEditor(i); closeAnthem(i); closeArtPick(i); });
+  closeSheets(); commit();
+}
+
+/* Auto prompt when someone is out */
+let endbarDismissed = '';
+function renderEndBar() {
+  const bar = document.getElementById('endbar');
+  const outs = state.players.map(p => lossReason(p));
+  const key = outs.join('|');
+  if (state.over || !outs.some(Boolean)) { bar.hidden = true; if (!outs.some(Boolean)) endbarDismissed = ''; return; }
+  if (endbarDismissed === key) { bar.hidden = true; return; }
+  const n = state.players.map(p => escapeHtml(p.name));
+  bar.innerHTML = outs[0] && outs[1]
+    ? `<span>Both players are out. Record the result?</span><button class="btn" data-eb="draw">Draw</button><button class="btn" data-eb="0">${n[0]} wins</button><button class="btn" data-eb="1">${n[1]} wins</button><button class="btn" data-eb="no">Not yet</button>`
+    : (() => { const loser = outs[0] ? 0 : 1; return `<span>${n[loser]} is out (${escapeHtml(outs[loser].toLowerCase())}). Record the result?</span>
+      <button class="btn primary" data-eb="${1 - loser}">${n[1 - loser]} wins</button><button class="btn" data-eb="no">Not yet</button>`; })();
+  bar.hidden = false;
+}
+document.getElementById('endbar').addEventListener('click', e => {
+  const b = e.target.closest('[data-eb]'); if (!b) return;
+  if (b.dataset.eb === 'no') { endbarDismissed = state.players.map(p => lossReason(p)).join('|'); renderEndBar(); return; }
+  recordResult(b.dataset.eb === 'draw' ? 'draw' : Number(b.dataset.eb));
+});
+
+/* Life graph: two fixed seat colors validated for the dark surface, a dashed second line,
+   direct end labels, a legend, a hover/tap readout and a turn-by-turn table */
+function lifeGraph(trail, names, startLife, opts = {}) {
+  const pts = trail && trail.length ? trail : [[1, 0, startLife, startLife]];
+  const W = 640, H = opts.small ? 150 : 220, L = 34, R = 92, T = 12, B = 26;
+  const lifes = pts.flatMap(p => [p[2], p[3]]);
+  let lo = Math.min(0, ...lifes), hi = Math.max(startLife, ...lifes);
+  if (hi === lo) hi = lo + 1;
+  const n = pts.length, xs = i => L + (n === 1 ? 0 : (i / (n - 1)) * (W - L - R)), ys = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const path = k => pts.map((p, i) => i === 0 ? `M${xs(0).toFixed(1)},${ys(p[k]).toFixed(1)}` : `H${xs(i).toFixed(1)}V${ys(p[k]).toFixed(1)}`).join('');
+  const ticksY = [...new Set([lo, 0, Math.round(startLife / 2), startLife, hi])].filter(v => v >= lo && v <= hi).sort((a, b) => a - b)
+    .filter((v, i, a) => i === 0 || ys(a[i - 1]) - ys(v) > 14);
+  const turnStarts = []; pts.forEach((p, i) => { if (i === 0 || p[0] !== pts[i - 1][0]) turnStarts.push(i); });
+  const every = Math.max(1, Math.ceil(turnStarts.length / 10));
+  const end = pts[n - 1];
+  let ly0 = ys(end[2]), ly1 = ys(end[3]);
+  if (Math.abs(ly0 - ly1) < 16) { const mid = (ly0 + ly1) / 2; ly0 = mid + (end[2] >= end[3] ? -8 : 8); ly1 = mid + (end[2] >= end[3] ? 8 : -8); }
+  const data = escapeHtml(JSON.stringify({ pts, names, W, L, R }));
+  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Life over the game: ${escapeHtml(names[0])} ended on ${end[2]}, ${escapeHtml(names[1])} ended on ${end[3]}">
+    ${ticksY.map(v => `<line x1="${L}" x2="${W - R}" y1="${ys(v)}" y2="${ys(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 6}" y="${ys(v) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`).join('')}
+    ${turnStarts.filter((_, k) => k % every === 0).map(i => `<text x="${xs(i)}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--muted)">T${pts[i][0]}</text>`).join('')}
+    <path d="${path(2)}" fill="none" stroke="var(--s0)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${path(3)}" fill="none" stroke="var(--s1)" stroke-width="2" stroke-dasharray="6 3" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${xs(n - 1)}" cy="${ys(end[2])}" r="4.5" fill="var(--s0)" stroke="var(--strip)" stroke-width="2"/>
+    <circle cx="${xs(n - 1)}" cy="${ys(end[3])}" r="4.5" fill="var(--s1)" stroke="var(--strip)" stroke-width="2"/>
+    <text x="${W - R + 10}" y="${ly0 + 4}" font-size="12" fill="var(--ink)">${escapeHtml(names[0])} ${end[2]}</text>
+    <text x="${W - R + 10}" y="${ly1 + 4}" font-size="12" fill="var(--ink)">${escapeHtml(names[1])} ${end[3]}</text>
+    <line class="lg-x" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/>
+    <rect class="lg-hit" x="${L}" y="0" width="${W - L - R}" height="${H}" fill="transparent"/></svg>`;
+  const perTurn = turnStarts.map((s, k) => pts[(turnStarts[k + 1] || n) - 1]);
+  return `<div class="lg" data-graph="${data}"><div class="lg-legend"><span><i class="s0"></i>${escapeHtml(names[0])}</span><span><i class="s1"></i>${escapeHtml(names[1])}</span></div>
+    ${svg}<div class="lg-tip" hidden></div></div>
+    ${opts.small ? '' : `<details class="tbl"><summary>Turn-by-turn table</summary><div class="tablewrap"><table class="rtable"><tr><th>Turn</th><th>${escapeHtml(names[0])}</th><th>${escapeHtml(names[1])}</th></tr>
+      ${perTurn.map(p => `<tr><td class="num">${p[0]}</td><td class="num">${p[2]}</td><td class="num">${p[3]}</td></tr>`).join('')}</table></div></details>`}`;
+}
+function bindGraphs(root) {
+  root.querySelectorAll('.lg[data-graph]').forEach(el => {
+    const { pts, names, W, L, R } = JSON.parse(el.dataset.graph);
+    const svg = el.querySelector('svg'), hit = el.querySelector('.lg-hit'), x = el.querySelector('.lg-x'), tip = el.querySelector('.lg-tip');
+    const show = e => {
+      const box = svg.getBoundingClientRect(), sx = (e.clientX - box.left) * (W / box.width);
+      const n = pts.length, i = Math.max(0, Math.min(n - 1, Math.round(((sx - L) / (W - L - R)) * (n - 1))));
+      const px = L + (n === 1 ? 0 : (i / (n - 1)) * (W - L - R));
+      x.setAttribute('x1', px); x.setAttribute('x2', px); x.setAttribute('visibility', 'visible');
+      const p = pts[i];
+      tip.textContent = `Turn ${p[0]} · ${names[0]} ${p[2]} · ${names[1]} ${p[3]}`;
+      tip.style.left = `${Math.max(70, Math.min(box.width - 70, px * box.width / W))}px`; tip.hidden = false;
+    };
+    const hide = () => { x.setAttribute('visibility', 'hidden'); tip.hidden = true; };
+    hit.addEventListener('pointermove', show); hit.addEventListener('pointerdown', show); hit.addEventListener('pointerleave', hide);
+  });
+}
+function highlights(g) {
+  const t = g.trail || [];
+  let big = null; const gained = [0, 0];
+  for (let k = 1; k < t.length; k++) for (const p of [0, 1]) {
+    const d = t[k][2 + p] - t[k - 1][2 + p];
+    if (d < 0 && (!big || -d > big.amount)) big = { p, amount: -d, turn: t[k][0] };
+    if (d > 0) gained[p] += d;
+  }
+  let lead = null;
+  if (g.winner === 0 || g.winner === 1) {
+    const w = g.winner;
+    for (let k = t.length - 1; k >= 0; k--) { if (t[k][2 + w] <= t[k][2 + (1 - w)]) { lead = t[k + 1] ? t[k + 1][0] : null; break; } }
+  }
+  return { big, gained, lead };
+}
+const fmtDur = s => s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.floor(s / 60) % 60} min` : `${Math.max(1, Math.round(s / 60))} min`;
+function gameSummaryHtml(g, opts = {}) {
+  const h = highlights(g), n = g.players.map(escapeHtml);
+  const head = g.winner === 'draw' ? `Game ${g.n} · Draw` : `Game ${g.n} · ${n[g.winner]} wins`;
+  return `${opts.noTitle ? `<h4 style="margin:0">${head}</h4>` : `<h2 id="recap-title">${head}</h2>`}
+    ${lifeGraph(g.trail, g.players, g.startLife, { small: opts.small })}
+    <div class="tiles">
+      <div class="tile"><span>Turns</span><b>${g.turns}</b><small>${escapeHtml(g.players[g.first])} on the play</small></div>
+      <div class="tile"><span>Length</span><b>${fmtDur(g.secs)}</b></div>
+      ${h.big ? `<div class="tile"><span>Biggest hit</span><b>${h.big.amount}</b><small>to ${n[h.big.p]} on turn ${h.big.turn}</small></div>` : ''}
+      <div class="tile"><span>Life gained</span><b>${h.gained[0]} · ${h.gained[1]}</b><small>${n[0]} · ${n[1]}</small></div>
+      ${h.lead ? `<div class="tile"><span>Took the lead for good</span><b>T${h.lead}</b><small>${n[g.winner]}</small></div>` : ''}
+    </div>`;
+}
+function matchLine(rec) {
+  const n = rec.players.map(escapeHtml), score = `${rec.wins[0]}–${rec.wins[1]}${rec.draws ? ` (${rec.draws} drawn)` : ''}`;
+  if (rec.bestOf === 1) return 'Single game';
+  if (rec.over) return rec.winner === 'draw' ? `Best of ${rec.bestOf} · Match drawn ${score}` : `Best of ${rec.bestOf} · ${n[rec.winner]} wins the match ${score}`;
+  const lead = rec.wins[0] === rec.wins[1] ? `Tied ${score}` : `${n[rec.wins[0] > rec.wins[1] ? 0 : 1]} leads ${score}`;
+  return `Best of ${rec.bestOf} · ${lead}`;
+}
+function openRecap() {
+  const m = state.match, g = hist.games.find(x => x.id === m.games[m.games.length - 1]);
+  if (!g) return;
+  const n = state.players.map(p => escapeHtml(p.name));
+  let actions;
+  if (!m.over) {
+    actions = `<div class="lbl">${n[m.chooser]} chooses for game ${m.games.length + 1}</div>
+      <div class="opts"><button class="opt" data-next="play"><strong>${n[m.chooser]} plays first</strong><span>On the play</span></button>
+      <button class="opt" data-next="draw"><strong>${n[m.chooser]} draws first</strong><span>On the draw</span></button></div>
+      <p class="hint">Sideboard now if you're using one. Life, counters and tokens reset; decks stay.</p>`;
+  } else actions = `<div class="opts"><button class="opt" data-newmatch><strong>New match</strong><span>Same players and decks</span></button></div>`;
+  document.getElementById('recap-body').innerHTML = `${gameSummaryHtml(g)}<p class="recap-line">${matchLine(matchRecord())}</p>${actions}
+    <div class="sheet-actions"><button class="btn" data-undoresult>Undo result</button><button class="btn" data-close>Close</button></div>`;
+  bindGraphs(document.getElementById('recap-body'));
+  openSheet('sheet-recap');
+}
+document.getElementById('sheet-recap').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.next) nextGame(b.dataset.next === 'play');
+  else if ('newmatch' in b.dataset) { closeSheets(); openNewSheet(); }
+  else if ('undoresult' in b.dataset) { closeSheets(); undo(); }
+});
+
+/* Records */
+const hui = { tab: 'game', fmt: 'all', range: 'all', pair: null, match: null, backup: null, photos: false };
+function inRange(iso) {
+  if (hui.range === 'all') return true;
+  const t = Date.parse(iso), now = Date.now();
+  return hui.range === 'year' ? new Date(t).getFullYear() === new Date(now).getFullYear() : now - t <= 30 * 864e5;
+}
+const pairKey = ps => ps.slice().sort((a, b) => a.localeCompare(b)).join('\u0000');
+function filtered() {
+  const ok = x => (hui.fmt === 'all' || x.format === hui.fmt) && inRange(x.date);
+  return { games: hist.games.filter(ok), matches: hist.matches.filter(ok) };
+}
+function pct(a, b) { return b ? `${Math.round(100 * a / b)}%` : '–'; }
+function renderRecords() {
+  const body = document.getElementById('rec-body');
+  const { games, matches } = filtered();
+  const pairs = new Map();
+  hist.matches.forEach(mm => { const k = pairKey(mm.players); pairs.set(k, (pairs.get(k) || 0) + 1); });
+  const cur = pairKey(state.players.map(p => p.name));
+  const pair = hui.pair && pairs.has(hui.pair) ? hui.pair : pairs.has(cur) ? cur : [...pairs.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0])[0];
+  const fmts = ['all', ...new Set(hist.matches.map(x => x.format))];
+  const filters = `<div class="toggles">${fmts.map(f => `<button class="tog chip-s" data-hfmt="${f}" aria-pressed="${hui.fmt === f}">${f === 'all' ? 'All formats' : escapeHtml(FORMAT_NAME(f))}</button>`).join('')}</div>
+    <div class="toggles">${[['all', 'All time'], ['year', 'This year'], ['30', 'Last 30 days']].map(([v, t]) => `<button class="tog chip-s" data-hrange="${v}" aria-pressed="${hui.range === v}">${t}</button>`).join('')}</div>`;
+  if (!pair) { body.innerHTML = `<div class="dform">${filters}<p class="hint">No games recorded yet. Finish a game (record who won) and your head-to-head record starts here.</p></div>`; return; }
+  const [A, B] = pair.split('\u0000');
+  const pairSel = pairs.size > 1 ? `<div class="toggles">${[...pairs.keys()].map(k => `<button class="tog chip-s" data-hpair="${escapeHtml(k)}" aria-pressed="${k === pair}">${escapeHtml(k.replace('\u0000', ' vs '))}</button>`).join('')}</div>` : '';
+  const G = games.filter(g => pairKey(g.players) === pair), M = matches.filter(x => pairKey(x.players) === pair);
+  const idx = (x, name) => x.players.indexOf(name);
+  const winnerName = x => (x.winner === 0 || x.winner === 1) ? x.players[x.winner] : null;
+  const done = M.filter(x => x.over), multi = done.filter(x => x.bestOf > 1);
+  const mw = nm => done.filter(x => winnerName(x) === nm).length;
+  const gw = nm => G.filter(g => winnerName(g) === nm).length, gd = G.filter(g => g.winner === 'draw').length;
+  const side = (nm, play) => { const gs = G.filter(g => g.winner !== 'draw' && (g.players[g.first] === nm) === play && idx(g, nm) >= 0); return [gs.filter(g => winnerName(g) === nm).length, gs.length]; };
+  const [ap, apn] = side(A, true), [ad, adn] = side(A, false), [bp, bpn] = side(B, true), [bd, bdn] = side(B, false);
+  const fmtRows = [...new Set(done.map(x => x.format))].map(f => { const xs = done.filter(x => x.format === f), gs = G.filter(g => g.format === f);
+    return `<tr><td>${escapeHtml(FORMAT_NAME(f))}</td><td class="num">${xs.filter(x => winnerName(x) === A).length}–${xs.filter(x => winnerName(x) === B).length}</td><td class="num">${gs.filter(g => winnerName(g) === A).length}–${gs.filter(g => winnerName(g) === B).length}</td></tr>`; }).join('');
+  const mu = new Map();
+  done.forEach(x => { const da = x.decks[idx(x, A)] || 'No deck', db = x.decks[idx(x, B)] || 'No deck'; const k = da + '\u0000' + db;
+    const r = mu.get(k) || { da, db, a: 0, b: 0, ga: 0, gb: 0 }; if (winnerName(x) === A) r.a++; else if (winnerName(x) === B) r.b++;
+    G.filter(g => g.matchId === x.id).forEach(g => { if (winnerName(g) === A) r.ga++; else if (winnerName(g) === B) r.gb++; }); mu.set(k, r); });
+  const muRows = [...mu.values()].sort((p, q) => (q.a + q.b) - (p.a + p.b)).map(r => `<tr><td>${escapeHtml(r.da)} <span class="credit">vs</span> ${escapeHtml(r.db)}</td><td class="num">${r.a}–${r.b}</td><td class="num">${r.ga}–${r.gb}</td></tr>`).join('');
+  const unfinished = M.length - done.length;
+  const nA = escapeHtml(A), nB = escapeHtml(B);
+  body.innerHTML = `<div class="dform" style="max-width:none">${filters}${pairSel}
+    <div class="tiles">
+      <div class="tile"><span>Matches</span><b>${mw(A)}–${mw(B)}</b><small>${nA} – ${nB}${multi.length !== done.length ? ` · incl. ${done.length - multi.length} single games` : ''}${unfinished ? ` · ${unfinished} unfinished` : ''}</small></div>
+      <div class="tile"><span>Games</span><b>${gw(A)}–${gw(B)}</b><small>${nA} – ${nB}${gd ? ` · ${gd} drawn` : ''}</small></div>
+      <div class="tile"><span>${nA} on the play</span><b>${pct(ap, apn)}</b><small>${ap} of ${apn} won · on the draw ${pct(ad, adn)} (${ad} of ${adn})</small></div>
+      <div class="tile"><span>${nB} on the play</span><b>${pct(bp, bpn)}</b><small>${bp} of ${bpn} won · on the draw ${pct(bd, bdn)} (${bd} of ${bdn})</small></div>
+    </div>
+    ${fmtRows ? `<div class="lbl">By format</div><div class="tablewrap"><table class="rtable"><tr><th>Format</th><th>Matches ${nA}–${nB}</th><th>Games</th></tr>${fmtRows}</table></div>` : ''}
+    ${muRows ? `<div class="lbl">By deck matchup (${nA}'s deck first)</div><div class="tablewrap"><table class="rtable"><tr><th>Matchup</th><th>Matches</th><th>Games</th></tr>${muRows}</table></div>` : ''}
+    <p class="hint">Records follow player names. Pick names from the suggestions in New match to keep them together.</p></div>`;
+}
+function renderMatches() {
+  const body = document.getElementById('m-body');
+  if (hui.match) {
+    const rec = hist.matches.find(x => x.id === hui.match);
+    if (rec) {
+      const gs = rec.games.map(id => hist.games.find(g => g.id === id)).filter(Boolean);
+      body.innerHTML = `<div class="rbar"><button class="tog" data-mback>All matches</button><button class="tog danger" data-mdel="${rec.id}">Delete match</button></div>
+        <div class="rview"><span class="crumb">${escapeHtml(new Date(rec.date).toLocaleDateString())} · ${escapeHtml(FORMAT_NAME(rec.format))}</span>
+        <h3>${escapeHtml(rec.players[0])} vs ${escapeHtml(rec.players[1])}</h3><p class="recap-line">${matchLine(rec)}</p>
+        ${rec.decks.some(Boolean) ? `<p class="hint">Decks: ${escapeHtml(rec.decks[0] || 'No deck')} vs ${escapeHtml(rec.decks[1] || 'No deck')}</p>` : ''}
+        ${gs.map(g => `<div class="hr">${gameSummaryHtml(g, { noTitle: true, small: true })}</div>`).join('')}</div>`;
+      bindGraphs(body); return;
+    }
+    hui.match = null;
+  }
+  const { matches } = filtered();
+  const list = matches.slice().sort((a, b) => b.date.localeCompare(a.date));
+  body.innerHTML = list.length ? `<div class="rlist">${list.map(x => `<button class="rres" data-mopen="${x.id}"><b>${escapeHtml(x.players[0])} ${x.wins[0]}–${x.wins[1]} ${escapeHtml(x.players[1])}</b>
+      ${escapeHtml(FORMAT_NAME(x.format))} · ${x.bestOf === 1 ? 'Single game' : `Best of ${x.bestOf}`}${x.over ? '' : ' · unfinished'}
+      <small>${escapeHtml(new Date(x.date).toLocaleDateString())}${x.decks.some(Boolean) ? ` · ${escapeHtml(x.decks[0] || 'No deck')} vs ${escapeHtml(x.decks[1] || 'No deck')}` : ''}</small></button>`).join('')}</div>`
+    : `<p class="hint">${hist.matches.length ? 'No matches for these filters.' : 'Finished games and matches appear here.'}</p>`;
+}
+function renderGameTab() {
+  document.getElementById('game-live').innerHTML = `<p class="recap-line" style="margin:0">${matchLine(matchRecord())} · ${escapeHtml(FORMAT_NAME(state.format))} · Turn ${state.turn}</p>
+    ${lifeGraph(state.trail, state.players.map(p => p.name), state.startLife)}<div class="lbl">Game log</div>`;
+  bindGraphs(document.getElementById('game-live'));
+  renderLog();
+}
+
+/* Backup and restore */
+const BACKUP_KEYS = { history: HIST_KEY, decks: KITS_KEY, myTokens: MINE_KEY, house: HOUSE_KEY, rulesPrefs: NAV_KEY, cards: CARDS_KEY };
+function renderBackup() {
+  const body = document.getElementById('b-body'), pend = hui.backup;
+  body.innerHTML = `<div class="dform">
+    <p class="hint">Everything here is stored only on this iPad. A backup file keeps your records, decks, My tokens, house rulings and settings safe if the iPad is reset or replaced.</p>
+    <div class="toggles"><button class="tog" data-bkphotos aria-pressed="${!!hui.photos}">Include background photos</button></div>
+    <div class="toggles"><button class="tog" data-bkexport>Back up now</button>
+      <label class="tog" for="bk-file">Restore from a backup…</label><input class="file" type="file" id="bk-file" accept="application/json,.json"></div>
+    ${pend ? `<div class="hr"><h4>Backup from ${escapeHtml(new Date(pend.exported).toLocaleString())}</h4>
+      <small>${((pend.data.history || {}).matches || []).length} matches · ${((pend.data.history || {}).games || []).length} games · ${(pend.data.decks || []).length} decks · ${(pend.data.myTokens || []).length} saved tokens · ${((pend.data.house || {}).rulings || []).length} rulings${pend.data.photos ? ' · photos' : ''}</small>
+      <div class="toggles"><button class="tog" data-bkmerge>Merge with this iPad</button><button class="tog danger" data-bkreplace>Replace this iPad's data</button><button class="tog" data-bkcancel>Cancel</button></div></div>` : ''}
+    <p class="hint" id="bk-msg"></p></div>`;
+}
+async function exportBackup() {
+  const data = {};
+  Object.entries(BACKUP_KEYS).forEach(([k, key]) => { data[k] = loadJSON(key, null); });
+  if (hui.photos) data.photos = bgs;
+  const json = JSON.stringify({ app: 'duel-life-tracker', version: 1, exported: new Date().toISOString(), data });
+  const name = `life-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  const msg = document.getElementById('bk-msg');
+  try {
+    const file = new File([json], name, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); msg.textContent = 'Backup ready. Choose "Save to Files" to keep it.'; return; }
+  } catch (e) { if (e && e.name === 'AbortError') { msg.textContent = 'Backup cancelled.'; return; } }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' })); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  msg.textContent = `Saved ${name} (${Math.max(1, Math.round(json.length / 1024))} KB). If nothing downloaded, open the Home Screen app and try again.`;
+}
+function readBackup(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const b = JSON.parse(r.result);
+      if (!b || b.app !== 'duel-life-tracker' || !b.data) throw new Error('not ours');
+      hui.backup = b; renderBackup();
+    } catch (e) { hui.backup = null; renderBackup(); document.getElementById('bk-msg').textContent = "That file isn't a Life Tracker backup."; }
+  };
+  r.readAsText(file);
+}
+function applyBackup(replace) {
+  const d = hui.backup.data;
+  const byId = (a, b) => { const out = [...(a || [])], ids = new Set(out.map(x => x.id)); (b || []).forEach(x => { if (!ids.has(x.id)) out.push(x); }); return out; };
+  if (replace) {
+    if (d.history) hist = d.history; if (d.decks) kits = d.decks; if (d.myTokens) myTokens = d.myTokens;
+    if (d.house) house = d.house; if (d.rulesPrefs) rprefs = d.rulesPrefs; if (d.cards) cardCache = d.cards;
+    if (d.photos) bgs = d.photos;
+  } else {
+    if (d.history) {
+      hist.games = byId(hist.games, d.history.games);
+      const mm = new Map(hist.matches.map(x => [x.id, x]));
+      (d.history.matches || []).forEach(x => { const cur = mm.get(x.id); if (!cur || x.games.length > cur.games.length) mm.set(x.id, x); });
+      hist.matches = [...mm.values()];
+    }
+    if (d.decks) kits = byId(kits, d.decks);
+    if (d.myTokens) d.myTokens.forEach(t => addToList(myTokens, t));
+    if (d.house) { house.rulings = byId(house.rulings, d.house.rulings); house.rules = byId(house.rules, d.house.rules); }
+    if (d.rulesPrefs) { rprefs.marks = [...new Set([...rprefs.marks, ...(d.rulesPrefs.marks || [])])]; if (!rprefs.formats && d.rulesPrefs.formats) rprefs.formats = d.rulesPrefs.formats; }
+    if (d.cards) { const names = new Set(cardCache.map(c => c.name)); d.cards.forEach(c => { if (!names.has(c.name)) cardCache.push(c); }); }
+    if (d.photos) [0, 1].forEach(i => { if (!bgs[i] && d.photos[i]) { bgs[i] = d.photos[i]; if (d.photos['credit' + i]) bgs['credit' + i] = d.photos['credit' + i]; } });
+  }
+  saveHist(); saveKits(); saveMine(); saveJSON(HOUSE_KEY, house); saveJSON(NAV_KEY, rprefs); saveJSON(CARDS_KEY, cardCache);
+  if (d.photos) saveBgs();
+  renderBg(0); renderBg(1); render();
+  hui.backup = null; renderBackup();
+  document.getElementById('bk-msg').textContent = replace ? "Restored. This iPad now has the backup's data." : 'Merged. Records and decks from the backup were added.';
+}
+
+/* History sheet */
+function switchHistTab(tab) {
+  hui.tab = tab;
+  document.querySelectorAll('[data-htab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.htab === tab)));
+  document.querySelectorAll('#sheet-log [data-hpane]').forEach(p => { p.hidden = p.dataset.hpane !== tab; });
+  document.getElementById('hist-sub').textContent = `${hist.matches.length} match${hist.matches.length === 1 ? '' : 'es'} recorded`;
+  if (tab === 'game') renderGameTab(); else if (tab === 'records') renderRecords(); else if (tab === 'matches') renderMatches(); else renderBackup();
+}
+document.getElementById('btn-log').addEventListener('click', () => { openSheet('sheet-log'); switchHistTab(hui.tab); });
+document.getElementById('sheet-log').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset;
+  if (d.htab) switchHistTab(d.htab);
+  else if (d.hfmt) { hui.fmt = d.hfmt; switchHistTab(hui.tab); }
+  else if (d.hrange) { hui.range = d.hrange; switchHistTab(hui.tab); }
+  else if (d.hpair) { hui.pair = d.hpair; renderRecords(); }
+  else if (d.mopen) { hui.match = d.mopen; renderMatches(); b.closest('.rpane') && (document.querySelector('[data-hpane="matches"]').scrollTop = 0); }
+  else if ('mback' in d) { hui.match = null; renderMatches(); }
+  else if (d.mdel) {
+    if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'Tap to delete'; setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.textContent = 'Delete match'; } }, 3000); return; }
+    hist.matches = hist.matches.filter(x => x.id !== d.mdel); hist.games = hist.games.filter(g => g.matchId !== d.mdel); saveHist();
+    hui.match = null; renderMatches();
+  }
+  else if ('bkphotos' in d) { hui.photos = !hui.photos; b.setAttribute('aria-pressed', String(hui.photos)); }
+  else if ('bkexport' in d) exportBackup();
+  else if ('bkmerge' in d) applyBackup(false);
+  else if ('bkreplace' in d) {
+    if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'Tap again to replace'; setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.textContent = "Replace this iPad's data"; } }, 3000); return; }
+    applyBackup(true);
+  }
+  else if ('bkcancel' in d) { hui.backup = null; renderBackup(); }
+});
+document.getElementById('sheet-log').addEventListener('change', e => {
+  if (e.target.id === 'bk-file' && e.target.files && e.target.files[0]) { readBackup(e.target.files[0]); e.target.value = ''; }
+});
+
 const announceEl = document.getElementById('announce');
 let announceTimer = null;
 function announce(big, small) {
@@ -2585,7 +3149,10 @@ document.addEventListener('pointerdown', wake, { passive: true });
 
 /* ---------- Boot ---------- */
 function start(hot) {
-  state = (hot && hot.state) || load() || newState(null, 'commander', 40, 0);
+  state = (hot && hot.state) || load() || Object.assign(newState(null, 'constructed', 20, 0), { match: newMatch(1, 0) });
+  if (state.format === 'standard') state.format = 'constructed';
+  if (!state.match) state.match = newMatch(1, state.first || 0);
+  if (!state.trail) state.trail = [[state.turn, state.active, state.players[0].life, state.players[1].life]];
   state.players.forEach(p => {
     if (!Array.isArray(p.tokens)) p.tokens = [];
     if (!Array.isArray(p.anthems)) p.anthems = [];

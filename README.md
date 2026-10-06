@@ -12,6 +12,12 @@ A two-player Magic: The Gathering life tracker built for an iPad sitting beside 
 
 ## What it tracks
 
+- Match play: single games, best of 3 or best of 5. Score and win pips on screen, a prompt to record the result when
+  someone is out, the loser chooses play or draw, and a game recap with a turn-by-turn life graph.
+- Records: head-to-head match and game records by format, by deck matchup, and on the play vs. on the draw, plus
+  every past match with its game recaps. Backup and restore to a file.
+- Formats: Constructed (60 cards, 20 life) by default, Limited, Commander and Brawl. Card lookup shows legality in
+  your chosen formats (Historic, Standard, Pioneer, Modern by default).
 - Life for two players. Tap the right side of a half for +1, the left side for −1, hold for ±10.
 - Poison, commander damage (also takes life), commander tax, energy, experience and storm.
 - Turns, game clock, monarch, initiative, day/night.
