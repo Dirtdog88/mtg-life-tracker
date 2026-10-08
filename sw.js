@@ -1,5 +1,5 @@
 // Caches the app so it opens with no connection. Bump VERSION when shipping changes.
-const VERSION = 'v9';
+const VERSION = 'v10';
 const APP = `life-app-${VERSION}`;
 const FONTS = 'life-fonts';
 const ART = 'life-art';          // Scryfall card art, kept so chosen art shows offline

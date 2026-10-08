@@ -62,3 +62,13 @@ scripts/               rules updater
 manifest.webmanifest   Home Screen name and icons
 icons/                 app icons
 ```
+
+## Credits
+
+- App icon: *Llanowar Elves* (Foundations, 2024, #227), art by Kev Walker, via [Scryfall](https://scryfall.com/card/fdn/227/llanowar-elves).
+- Card data, rulings and card images: [Scryfall](https://scryfall.com).
+- Comprehensive Rules: Wizards of the Coast.
+
+Duel Life Tracker is unofficial Fan Content permitted under the Wizards of the Coast Fan Content Policy. Not
+approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the
+Coast LLC. The icon can be rebuilt from any card with the **Build app icon from card art** workflow.
