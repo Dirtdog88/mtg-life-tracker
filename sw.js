@@ -1,5 +1,5 @@
 // Caches the app so it opens with no connection. Bump VERSION when shipping changes.
-const VERSION = 'v10';
+const VERSION = 'v11';
 const APP = `life-app-${VERSION}`;
 const FONTS = 'life-fonts';
 const ART = 'life-art';          // Scryfall card art, kept so chosen art shows offline
@@ -44,10 +44,16 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // The app itself: try the network for fresh changes, fall back to the cache offline
+  // The app itself: try the network for fresh changes. If it's offline or the site answers with an
+  // error (say GitHub Pages is down or unpublished), keep using the saved copy instead of showing the error page.
   if (url.origin === location.origin) {
+    const saved = () => caches.match(e.request, { ignoreSearch: true })
+      .then(r => r || (e.request.mode === 'navigate' ? caches.match('index.html') : undefined));
     e.respondWith(fetch(e.request)
-      .then(r => { if (r.ok) caches.open(APP).then(c => c.put(e.request, r.clone())); return r; })
-      .catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || caches.match('index.html'))));
+      .then(r => {
+        if (r.ok) { caches.open(APP).then(c => c.put(e.request, r.clone())); return r; }
+        return saved().then(c => c || r);
+      })
+      .catch(() => saved().then(c => c || Response.error())));
   }
 });
