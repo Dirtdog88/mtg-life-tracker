@@ -1,0 +1,59 @@
+# Builds app icons from a card's Scryfall artwork and puts them on the icon-preview branch for review.
+# Run by hand from the Actions tab. Nothing on main changes until the icons are copied over.
+name: Build app icon from card art
+
+on:
+  workflow_dispatch:
+    inputs:
+      card:
+        description: Exact card name
+        default: Llanowar Elves
+      set:
+        description: Set code (leave empty for the newest paper printing)
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  icon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find the printing and download its art
+        env:
+          CARD: ${{ inputs.card }}
+          SET: ${{ inputs.set }}
+        run: |
+          set -euo pipefail
+          mkdir -p preview
+          Q="!\"$CARD\" game:paper"
+          [ -n "$SET" ] && Q="$Q set:$SET"
+          UA='mtg-life-tracker icon builder'
+          curl -sfG -H "User-Agent: $UA" -H 'Accept: application/json' \
+            --data-urlencode "q=$Q" --data-urlencode 'unique=prints' --data-urlencode 'order=released' --data-urlencode 'dir=desc' \
+            https://api.scryfall.com/cards/search -o search.json
+          jq '[.data[] | select((.image_uris.art_crop // .card_faces[0].image_uris.art_crop) != null)] | .[0:8] |
+            map({name, set, set_name, collector_number, released_at, artist, promo, frame_effects, scryfall_uri,
+                 art: (.image_uris.art_crop // .card_faces[0].image_uris.art_crop)})' search.json > preview/printings.json
+          jq '.[0]' preview/printings.json > preview/chosen.json
+          cat preview/chosen.json
+          curl -sf -H "User-Agent: $UA" "$(jq -r '.art' preview/chosen.json)" -o preview/art.jpg
+      - name: Make square icons
+        run: |
+          set -euo pipefail
+          command -v convert >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick)
+          for size in 512 192 180; do
+            convert preview/art.jpg -resize "${size}x${size}^" -gravity center -extent "${size}x${size}" -strip "preview/icon-${size}.png"
+          done
+          identify preview/*.png
+      - name: Publish to the icon-preview branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan icon-preview
+          git rm -rq --cached .
+          git add preview
+          git commit -qm "Icon preview: $(jq -r '"\(.name) — \(.set_name) (\(.released_at)), art by \(.artist)"' preview/chosen.json)"
+          git push -f origin icon-preview
