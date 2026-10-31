@@ -3030,6 +3030,9 @@ async function exportBackup() {
   const data = {};
   Object.entries(BACKUP_KEYS).forEach(([k, key]) => { data[k] = loadJSON(key, null); });
   if (hui.photos) data.photos = bgs;
+  // Player setup and the best-of default, so moving to a new web address loses nothing
+  data.seats = state.players.map(p => ({ name: p.name, color: p.color, kit: p.kit || null }));
+  try { data.bestOf = Number(localStorage.getItem(BO_KEY)) || null; } catch (e) { /* optional */ }
   const json = JSON.stringify({ app: 'duel-life-tracker', version: 1, exported: new Date().toISOString(), data });
   const name = `life-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
   const msg = document.getElementById('bk-msg');
@@ -3061,6 +3064,11 @@ function applyBackup(replace) {
     if (d.history) hist = d.history; if (d.decks) kits = d.decks; if (d.myTokens) myTokens = d.myTokens;
     if (d.house) house = d.house; if (d.rulesPrefs) rprefs = d.rulesPrefs; if (d.cards) cardCache = d.cards;
     if (d.photos) bgs = d.photos;
+    if (Array.isArray(d.seats) && d.seats.length === 2) {
+      d.seats.forEach((p, i) => { Object.assign(state.players[i], { name: p.name, color: p.color, kit: p.kit || null }); });
+      save();
+    }
+    if (d.bestOf) { try { localStorage.setItem(BO_KEY, String(d.bestOf)); } catch (e) { /* optional */ } }
   } else {
     if (d.history) {
       hist.games = byId(hist.games, d.history.games);
