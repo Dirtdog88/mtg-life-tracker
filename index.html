@@ -543,7 +543,6 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
 .t-life input { width: 90px; text-align: center; font-family: var(--f-num); font-size: 20px; }
 .t-champ { text-align: center; padding: 18px; }
 .t-champ b { display: block; font-family: var(--f-title); font-size: clamp(28px, 6vw, 48px); letter-spacing: .06em; }
-.t-warn { color: var(--warn); font-size: 13px; margin: 0; }
 .t-err { color: var(--danger); font-size: 13px; margin: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
@@ -3049,8 +3048,8 @@ function renderGameTab() {
 /* ---------- Tournament: round robin with random decks ---------- */
 // One event at a time. Every player meets every other player once (single game). With an odd count one player sits
 // out each round. Decks come from the saved deck list and are dealt at random: no deck twice in a round, and no
-// player gets the same deck twice unless the pool is too small and repeats were allowed at setup.
-// Matches played on this iPad report their winner and life automatically; other tables are entered by hand.
+// player gets the same deck twice.
+// Matches played on this device report their winner and life automatically; other tables are entered by hand.
 const TOUR_KEY = 'mtg-duel-tournament-v1';
 const TOURS_KEY = 'mtg-duel-tournaments-v1';
 let tour = loadJSON(TOUR_KEY, null);
@@ -3101,12 +3100,10 @@ function dealDecks(t, from) {
       if (++nodes > 20000) return false;
       const s = slots[k];
       const fresh = shuffle(ids.filter(d => !inRound[s.ri].has(d) && !used[s.p].has(d)));
-      const again = t.repeats ? shuffle(ids.filter(d => !inRound[s.ri].has(d) && used[s.p].has(d))) : [];
-      for (const d of [...fresh, ...again]) {
-        const had = used[s.p].has(d);
+      for (const d of fresh) {
         inRound[s.ri].add(d); used[s.p].add(d); pick[k] = d;
         if (go(k + 1)) return true;
-        inRound[s.ri].delete(d); if (!had) used[s.p].delete(d);
+        inRound[s.ri].delete(d); used[s.p].delete(d);
       }
       return false;
     };
@@ -3178,11 +3175,12 @@ function newTourSetup() {
   const known = knownNames();
   const count = 5;
   tset = { count, names: Array.from({ length: 12 }, (_, i) => known[i] || ''), decks: new Set(kits.map(k => k.id)),
-    format: 'constructed', life: 20, repeats: false, newDeck: false, err: '' };
+    format: 'constructed', life: 20, newDeck: false, err: '' };
 }
 function renderTourSetup(body) {
   const n = tset.count, D = tset.decks.size, need = tourMinDecks(n);
-  const short = D < need, repeatsNeeded = !short && D < n - 1;
+  // 2 decks per table is always at least n − 1, so a pool that fills every table also gives everyone different decks
+  const short = D < need;
   const rounds = n % 2 ? n : n - 1, matches = n * (n - 1) / 2;
   body.innerHTML = `<div class="dform">
     <div class="label">Players</div>
@@ -3197,12 +3195,10 @@ function renderTourSetup(body) {
       <button class="tog chip-s" data-tnewdeck>+ New deck</button></div>
     ${tset.newDeck ? `<div class="t-life"><input id="tn-deck" maxlength="30" autocomplete="off" placeholder="Deck name" style="width:220px;text-align:left;font-family:var(--f-ui);font-size:16px" aria-label="New deck name"><button class="tog" data-tsavedeck>Add</button></div>` : ''}
     ${short ? `<p class="t-err">${n} players need at least ${need} decks so every table in a round has two different decks.</p>` : ''}
-    ${repeatsNeeded ? `<p class="t-warn">With ${D} decks, ${n} players can't each get ${n - 1} different decks. Allow repeats to start: players get decks they haven't played first whenever possible.</p>
-      <div class="toggles"><button class="tog" data-trepeats aria-pressed="${tset.repeats}">Allow repeat decks</button></div>` : ''}
     <div class="label">Format</div>
     <div class="toggles">${FORMATS.map(f => `<button class="tog chip-s" data-tformat="${f.id}" aria-pressed="${tset.format === f.id}">${f.name} · ${f.life}</button>`).join('')}</div>
     ${tset.err ? `<p class="t-err">${escapeHtml(tset.err)}</p>` : ''}
-    <div class="sheet-actions"><button class="btn primary" data-tstart ${short || (repeatsNeeded && !tset.repeats) ? 'disabled' : ''}>Start tournament</button></div>
+    <div class="sheet-actions"><button class="btn primary" data-tstart ${short ? 'disabled' : ''}>Start tournament</button></div>
     ${renderPastTours()}
   </div>`;
 }
@@ -3219,8 +3215,8 @@ function startTour() {
   const f = FORMATS.find(x => x.id === tset.format) || FORMATS[0];
   const t = { id: uid(), started: Date.now(), format: f.id, life: f.life, players: names,
     decks: kits.filter(k => tset.decks.has(k.id)).map(k => ({ id: k.id, name: k.name })),
-    repeats: tset.decks.size < n - 1 && tset.repeats, rounds: roundRobin(n), round: 0, over: false };
-  if (!dealDecks(t, 0)) { tset.err = "Couldn't deal the decks with these rules. Add a deck or allow repeats."; renderTour(); return; }
+    rounds: roundRobin(n), round: 0, over: false };
+  if (!dealDecks(t, 0)) { tset.err = "Couldn't deal the decks with these rules. Try again, or add a deck to the pool."; renderTour(); return; }
   t.rounds[0].dealt = true;
   tour = t; tset = null; tui.tab = 'round'; tui.entry = null; saveTour(); renderTour();
 }
@@ -3231,7 +3227,7 @@ function tableCard(tb, ti, ri, live) {
   const playing = state.match && state.match.tour && state.match.tour.tid === tour.id && state.match.tour.r === ri && state.match.tour.t === ti && !state.match.over;
   let foot = '';
   if (res) {
-    foot = `<small>${escapeHtml(tName(res.winner === 0 ? tb.a : tb.b))} won · ${res.life} life left${res.src === 'ipad' ? ' · played here' : ''}</small>
+    foot = `<small>${escapeHtml(tName(res.winner === 0 ? tb.a : tb.b))} won · ${res.life} life left${res.src === 'ipad' ? ' · played on this device' : ''}</small>
       ${live ? `<div class="toggles"><button class="tog chip-s danger" data-tclear="${ti}">Clear result</button></div>` : ''}`;
   } else if (live && tui.entry === ti) {
     foot = `<div class="label">Who won?</div>
@@ -3239,7 +3235,7 @@ function tableCard(tb, ti, ri, live) {
       <div class="t-life"><span class="hint">Winner's life left</span><input id="t-lifein" type="number" inputmode="numeric" min="0" max="999" value="${escapeHtml(tui.life)}" aria-label="Winner's life left">
       <button class="tog" data-tsave="${ti}" ${tui.win === undefined ? 'disabled' : ''}>Save result</button><button class="tog" data-tcancel>Cancel</button></div>`;
   } else if (live) {
-    foot = `<div class="toggles">${playing ? '<small>Playing on this iPad now</small>' : `<button class="tog" data-tplay="${ti}">Play on this iPad</button>`}
+    foot = `<div class="toggles">${playing ? '<small>Playing on this device now</small>' : `<button class="tog" data-tplay="${ti}">Play here</button>`}
       <button class="tog" data-tenter="${ti}">Enter result</button></div>`;
   }
   return `<div class="hr"><small>Table ${ti + 1}</small><div class="t-vs">${seat(tb.a, 0)}<em>vs</em>${seat(tb.b, 1)}</div>${foot}</div>`;
@@ -3320,7 +3316,7 @@ function playTourMatch(ti) {
   closeSheets(); commit();
   announce(state.players[first].name, 'goes first');
 }
-// Called after every recorded game: a finished tournament match on this iPad fills in its table
+// Called after every recorded game: a finished tournament match on this device fills in its table
 function tourReport(m) {
   if (!tour || !m.tour || m.tour.tid !== tour.id || !m.over || (m.winner !== 0 && m.winner !== 1)) return;
   const tb = tour.rounds[m.tour.r] && tour.rounds[m.tour.r].tables[m.tour.t];
@@ -3364,7 +3360,6 @@ document.getElementById('sheet-tour').addEventListener('click', e => {
     if (!name) return;
     const k = { id: uid(), name, tokens: [], anthems: [] }; kits.push(k); saveKits(); tset.decks.add(k.id); tset.newDeck = false;
   }
-  else if ('trepeats' in d) tset.repeats = !tset.repeats;
   else if (d.tformat) tset.format = d.tformat;
   else if ('tstart' in d) { startTour(); return; }
   else if (d.tplay) { playTourMatch(Number(d.tplay)); return; }
