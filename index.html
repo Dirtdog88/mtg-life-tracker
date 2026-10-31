@@ -525,6 +525,25 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
 .announce .rule { height: 1px; background: var(--line); }
 .announce.roll b { animation: pop .35s ease-out; }
 @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+/* ---------- Tournament ---------- */
+.t-names { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+.t-names input, .t-life input {
+  width: 100%; height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(0, 0, 0, .3);
+  color: var(--ink); font-family: var(--f-ui); font-size: 16px; -webkit-user-select: text; user-select: text;
+}
+.t-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+.t-vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
+.t-vs .seat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.t-vs .seat:last-child { text-align: right; }
+.t-vs .seat strong { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-vs .seat span { font-size: 13px; color: var(--muted); }
+.t-vs .seat.win strong { color: #84d9a4; }
+.t-vs em { font-style: normal; color: var(--muted); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.t-life { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.t-life input { width: 90px; text-align: center; font-family: var(--f-num); font-size: 20px; }
+.t-champ { text-align: center; padding: 18px; }
+.t-champ b { display: block; font-family: var(--f-title); font-size: clamp(28px, 6vw, 48px); letter-spacing: .06em; }
+.t-err { color: var(--danger); font-size: 13px; margin: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -564,6 +583,9 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
       </button>
       <button class="sbtn" id="btn-log" aria-label="History and records">
         <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg><span class="t">History</span>
+      </button>
+      <button class="sbtn" id="btn-tour" aria-label="Tournament">
+        <svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3a3 3 0 0 1-3 4M7 5H4a3 3 0 0 0 3 4"/></svg><span class="t">Event</span>
       </button>
     </div>
   </nav>
@@ -638,6 +660,15 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
     <section class="rpane" data-hpane="records" hidden><div id="rec-body"></div></section>
     <section class="rpane" data-hpane="matches" hidden><div id="m-body"></div></section>
     <section class="rpane" data-hpane="backup" hidden><div id="b-body"></div></section>
+  </div>
+</div>
+
+<!-- Tournament: setup, rounds, standings, schedule, decks -->
+<div class="scrim" id="sheet-tour" hidden>
+  <div class="sheet rules-sheet" role="dialog" aria-labelledby="tour-title">
+    <div class="rules-head"><h2 id="tour-title">Tournament</h2><span class="rules-ver" id="tour-sub"></span><button class="btn" data-close>Close</button></div>
+    <div class="rtabs" role="tablist" id="tour-tabs"></div>
+    <section class="rpane" id="tour-body"></section>
   </div>
 </div>
 
@@ -1106,6 +1137,7 @@ function undo() {
   state = snap;
   burst = null;
   reconcileHistory();
+  tourReconcile();
   deltaShown[0] = deltaShown[1] = 0;
   renderDelta(0); renderDelta(1);
   commit();
@@ -2783,6 +2815,7 @@ function recordResult(w) {
   const rec = hist.matches.find(x => x.id === m.id);
   if (rec) Object.assign(rec, matchRecord()); else hist.matches.push(matchRecord());
   saveHist();
+  tourReport(m);
   commit();
   openRecap();
 }
@@ -3012,8 +3045,354 @@ function renderGameTab() {
   renderLog();
 }
 
+/* ---------- Tournament: round robin with random decks ---------- */
+// One event at a time. Every player meets every other player once (single game). With an odd count one player sits
+// out each round. Decks come from the saved deck list and are dealt at random: no deck twice in a round, and no
+// player gets the same deck twice.
+// Matches played on this device report their winner and life automatically; other tables are entered by hand.
+const TOUR_KEY = 'mtg-duel-tournament-v1';
+const TOURS_KEY = 'mtg-duel-tournaments-v1';
+let tour = loadJSON(TOUR_KEY, null);
+let pastTours = loadJSON(TOURS_KEY, []);
+const saveTour = () => saveJSON(TOUR_KEY, tour);
+const savePastTours = () => saveJSON(TOURS_KEY, pastTours);
+const tui = { tab: 'round', entry: null, life: '', confirmEnd: false, msg: '' };
+let tset = null;
+
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const tourMinDecks = n => 2 * Math.floor(n / 2);
+
+// Circle method: fix the first seat, rotate the rest. -1 stands for the bye.
+function roundRobin(n) {
+  const arr = shuffle([...Array(n).keys()]);
+  if (n % 2) arr.push(-1);
+  const m = arr.length, rounds = [];
+  let cur = arr;
+  for (let r = 0; r < m - 1; r++) {
+    const tables = []; let bye = null;
+    for (let i = 0; i < m / 2; i++) {
+      const x = cur[i], y = cur[m - 1 - i];
+      if (x === -1 || y === -1) { bye = x === -1 ? y : x; continue; }
+      const [a, b] = (r + i) % 2 ? [y, x] : [x, y];
+      tables.push({ a, b, decks: [null, null], result: null });
+    }
+    rounds.push({ tables: shuffle(tables), bye, dealt: false });
+    cur = [cur[0], cur[m - 1], ...cur.slice(1, m - 1)];
+  }
+  return shuffle(rounds);
+}
+
+// Deal decks for rounds `from` onward, keeping earlier rounds as they are. Randomized backtracking over every seat,
+// so a later round can never be left without a legal deal.
+function dealDecks(t, from) {
+  const ids = t.decks.map(d => d.id);
+  const usedBefore = t.players.map(() => new Set());
+  t.rounds.slice(0, from).forEach(r => r.tables.forEach(tb => { usedBefore[tb.a].add(tb.decks[0]); usedBefore[tb.b].add(tb.decks[1]); }));
+  const slots = [];
+  t.rounds.forEach((r, ri) => { if (ri >= from) r.tables.forEach((tb, ti) => { slots.push({ ri, ti, seat: 0, p: tb.a }); slots.push({ ri, ti, seat: 1, p: tb.b }); }); });
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const used = usedBefore.map(s => new Set(s));
+    const inRound = t.rounds.map(() => new Set());
+    const pick = new Array(slots.length);
+    let nodes = 0;
+    const go = k => {
+      if (k === slots.length) return true;
+      if (++nodes > 20000) return false;
+      const s = slots[k];
+      const fresh = shuffle(ids.filter(d => !inRound[s.ri].has(d) && !used[s.p].has(d)));
+      for (const d of fresh) {
+        inRound[s.ri].add(d); used[s.p].add(d); pick[k] = d;
+        if (go(k + 1)) return true;
+        inRound[s.ri].delete(d); used[s.p].delete(d);
+      }
+      return false;
+    };
+    if (go(0)) {
+      slots.forEach((s, k) => { t.rounds[s.ri].tables[s.ti].decks[s.seat] = pick[k]; });
+      return true;
+    }
+  }
+  return false;
+}
+
+const tDeck = id => { const d = tour && tour.decks.find(x => x.id === id); return d ? d.name : '?'; };
+const tName = i => tour.players[i];
+
+// Standings: most wins, then tiebreaks. Two tied: head-to-head. Three or more: record against the players outside
+// the tie. Then total life left in games won. Then a coin flip (fixed per event, so the order never jumps around).
+function tourStats(t) {
+  const st = t.players.map((name, i) => ({ i, name, w: 0, l: 0, life: 0, played: 0, why: '' }));
+  t.rounds.forEach(r => r.tables.forEach(tb => {
+    if (!tb.result) return;
+    const win = tb.result.winner === 0 ? tb.a : tb.b, lose = tb.result.winner === 0 ? tb.b : tb.a;
+    st[win].w++; st[lose].l++; st[win].played++; st[lose].played++;
+    st[win].life += Math.max(0, Number(tb.result.life) || 0);
+  }));
+  return st;
+}
+function beat(t, x, y) {
+  let r = 0;
+  t.rounds.forEach(rd => rd.tables.forEach(tb => {
+    if (!tb.result) return;
+    const win = tb.result.winner === 0 ? tb.a : tb.b, lose = tb.result.winner === 0 ? tb.b : tb.a;
+    if (win === x && lose === y) r++;
+  }));
+  return r;
+}
+function coinOf(t, name) {
+  let h = 2166136261; const s = t.id + '|' + name;
+  for (let k = 0; k < s.length; k++) { h ^= s.charCodeAt(k); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function splitBy(group, key) {
+  const m = new Map();
+  group.forEach(x => { const k = key(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); });
+  return [...m.entries()].sort((a, b) => b[0] - a[0]).map(e => e[1]);
+}
+function breakTie(t, group) {
+  if (group.length < 2) return group;
+  const steps = group.length === 2
+    ? [['head-to-head', x => beat(t, x.i, group.find(y => y !== x).i)], ['life left', x => x.life], ['coin flip', x => coinOf(t, x.name)]]
+    : [['record vs field', x => { const ids = new Set(group.map(y => y.i)); return t.players.reduce((n, _, j) => n + (ids.has(j) ? 0 : beat(t, x.i, j)), 0); }],
+       ['life left', x => x.life], ['coin flip', x => coinOf(t, x.name)]];
+  for (const [why, key] of steps) {
+    const parts = splitBy(group, key);
+    if (parts.length > 1) {
+      group.forEach(x => { if (!x.why) x.why = why; });
+      return parts.flatMap(p => breakTie(t, p));
+    }
+  }
+  return group;
+}
+function tourStandings(t) {
+  const st = tourStats(t);
+  const anyResult = st.some(x => x.played);
+  return splitBy(st, x => x.w).flatMap(g => anyResult ? breakTie(t, g) : g.sort((a, b) => a.name.localeCompare(b.name)));
+}
+
+/* Setup */
+function newTourSetup() {
+  const known = knownNames();
+  const count = 5;
+  tset = { count, names: Array.from({ length: 12 }, (_, i) => known[i] || ''), decks: new Set(kits.map(k => k.id)),
+    format: 'constructed', life: 20, newDeck: false, err: '' };
+}
+function renderTourSetup(body) {
+  const n = tset.count, D = tset.decks.size, need = tourMinDecks(n);
+  // 2 decks per table is always at least n − 1, so a pool that fills every table also gives everyone different decks
+  const short = D < need;
+  const rounds = n % 2 ? n : n - 1, matches = n * (n - 1) / 2;
+  body.innerHTML = `<div class="dform">
+    <div class="label">Players</div>
+    <div class="life-step">
+      <button class="step" data-tcount="-1" aria-label="Fewer players">−</button><span class="v">${n}</span>
+      <button class="step" data-tcount="1" aria-label="More players">+</button>
+      <span class="hint">${rounds} rounds · ${matches} matches · ${Math.floor(n / 2)} table${n > 3 ? 's' : ''}${n % 2 ? ' · one bye per round' : ''}</span>
+    </div>
+    <div class="t-names">${Array.from({ length: n }, (_, i) => `<input id="tn-${i}" maxlength="18" autocomplete="off" placeholder="Player ${i + 1}" value="${escapeHtml(tset.names[i])}" aria-label="Player ${i + 1} name">`).join('')}</div>
+    <div class="label">Decks in the pool (${D})</div>
+    <div class="toggles">${kits.map(k => `<button class="tog chip-s" data-tdeck="${k.id}" aria-pressed="${tset.decks.has(k.id)}">${escapeHtml(k.name)}</button>`).join('')}
+      <button class="tog chip-s" data-tnewdeck>+ New deck</button></div>
+    ${tset.newDeck ? `<div class="t-life"><input id="tn-deck" maxlength="30" autocomplete="off" placeholder="Deck name" style="width:220px;text-align:left;font-family:var(--f-ui);font-size:16px" aria-label="New deck name"><button class="tog" data-tsavedeck>Add</button></div>` : ''}
+    ${short ? `<p class="t-err">${n} players need at least ${need} decks so every table in a round has two different decks.</p>` : ''}
+    <div class="label">Format</div>
+    <div class="toggles">${FORMATS.map(f => `<button class="tog chip-s" data-tformat="${f.id}" aria-pressed="${tset.format === f.id}">${f.name} · ${f.life}</button>`).join('')}</div>
+    ${tset.err ? `<p class="t-err">${escapeHtml(tset.err)}</p>` : ''}
+    <div class="sheet-actions"><button class="btn primary" data-tstart ${short ? 'disabled' : ''}>Start tournament</button></div>
+    ${renderPastTours()}
+  </div>`;
+}
+function renderPastTours() {
+  if (!pastTours.length) return '';
+  return `<div class="label">Past winners</div><div class="tablewrap"><table class="rtable"><tr><th>Date</th><th>Champion</th><th>Record</th><th>Players</th></tr>
+    ${pastTours.slice().reverse().map(p => `<tr><td>${escapeHtml(new Date(p.date).toLocaleDateString())}</td><td><strong>${escapeHtml(p.champion)}</strong></td>
+      <td class="num">${p.standings[0].w}–${p.standings[0].l}</td><td>${p.players.length}</td></tr>`).join('')}</table></div>`;
+}
+function startTour() {
+  const n = tset.count;
+  const names = Array.from({ length: n }, (_, i) => (tset.names[i] || '').trim() || `Player ${i + 1}`);
+  if (new Set(names.map(x => x.toLowerCase())).size !== n) { tset.err = 'Each player needs a different name.'; renderTour(); return; }
+  const f = FORMATS.find(x => x.id === tset.format) || FORMATS[0];
+  const t = { id: uid(), started: Date.now(), format: f.id, life: f.life, players: names,
+    decks: kits.filter(k => tset.decks.has(k.id)).map(k => ({ id: k.id, name: k.name })),
+    rounds: roundRobin(n), round: 0, over: false };
+  if (!dealDecks(t, 0)) { tset.err = "Couldn't deal the decks with these rules. Try again, or add a deck to the pool."; renderTour(); return; }
+  t.rounds[0].dealt = true;
+  tour = t; tset = null; tui.tab = 'round'; tui.entry = null; saveTour(); renderTour();
+}
+
+/* Rounds */
+function tableCard(tb, ti, ri, live) {
+  const res = tb.result, seat = (p, k) => `<div class="seat${res && res.winner === k ? ' win' : ''}"><strong>${escapeHtml(tName(p))}</strong><span>${escapeHtml(tDeck(tb.decks[k]))}</span></div>`;
+  const playing = state.match && state.match.tour && state.match.tour.tid === tour.id && state.match.tour.r === ri && state.match.tour.t === ti && !state.match.over;
+  let foot = '';
+  if (res) {
+    foot = `<small>${escapeHtml(tName(res.winner === 0 ? tb.a : tb.b))} won · ${res.life} life left${res.src === 'ipad' ? ' · played on this device' : ''}</small>
+      ${live ? `<div class="toggles"><button class="tog chip-s danger" data-tclear="${ti}">Clear result</button></div>` : ''}`;
+  } else if (live && tui.entry === ti) {
+    foot = `<div class="label">Who won?</div>
+      <div class="toggles"><button class="tog" data-twin="0" aria-pressed="${tui.win === 0}">${escapeHtml(tName(tb.a))}</button><button class="tog" data-twin="1" aria-pressed="${tui.win === 1}">${escapeHtml(tName(tb.b))}</button></div>
+      <div class="t-life"><span class="hint">Winner's life left</span><input id="t-lifein" type="number" inputmode="numeric" min="0" max="999" value="${escapeHtml(tui.life)}" aria-label="Winner's life left">
+      <button class="tog" data-tsave="${ti}" ${tui.win === undefined ? 'disabled' : ''}>Save result</button><button class="tog" data-tcancel>Cancel</button></div>`;
+  } else if (live) {
+    foot = `<div class="toggles">${playing ? '<small>Playing on this device now</small>' : `<button class="tog" data-tplay="${ti}">Play here</button>`}
+      <button class="tog" data-tenter="${ti}">Enter result</button></div>`;
+  }
+  return `<div class="hr"><small>Table ${ti + 1}</small><div class="t-vs">${seat(tb.a, 0)}<em>vs</em>${seat(tb.b, 1)}</div>${foot}</div>`;
+}
+function renderTourRound(body) {
+  const ri = tour.round, r = tour.rounds[ri], last = ri === tour.rounds.length - 1;
+  const done = r.tables.every(tb => tb.result), started = r.tables.some(tb => tb.result);
+  if (tour.over) { body.innerHTML = renderChampion(); return; }
+  body.innerHTML = `<h3 class="sub-h">Round ${ri + 1} of ${tour.rounds.length}</h3>
+    ${r.bye !== null ? `<p class="hint">${escapeHtml(tName(r.bye))} sits out this round.</p>` : ''}
+    <div class="t-tables">${r.tables.map((tb, ti) => tableCard(tb, ti, ri, true)).join('')}</div>
+    ${tui.msg ? `<p class="t-err">${escapeHtml(tui.msg)}</p>` : ''}
+    <div class="toggles">
+      ${done ? `<button class="btn primary" data-tnext>${last ? 'Finish tournament' : `Start round ${ri + 2}`}</button>` : ''}
+      ${!started ? '<button class="tog" data-tredeal>Re-deal decks</button>' : ''}
+      <button class="tog danger" data-tend>${tui.confirmEnd ? 'Tap again to end without a winner' : 'End tournament'}</button>
+    </div>`;
+}
+function renderChampion() {
+  const st = tourStandings(tour), c = st[0];
+  return `<div class="hr t-champ"><span class="lbl">Champion</span><b>${escapeHtml(c.name)}</b><small>${c.w}–${c.l} · ${c.life} life left in wins${c.why ? ` · won the tiebreak on ${c.why}` : ''}</small></div>
+    ${standingsTable(st)}
+    <div class="toggles"><button class="btn primary" data-tnew>New tournament</button></div>`;
+}
+function standingsTable(st) {
+  return `<div class="tablewrap"><table class="rtable"><tr><th>#</th><th>Player</th><th>W–L</th><th>Life left</th><th>Tiebreak</th></tr>
+    ${st.map((x, k) => `<tr><td class="num">${k + 1}</td><td><strong>${escapeHtml(x.name)}</strong></td><td class="num">${x.w}–${x.l}</td><td class="num">${x.life}</td><td>${escapeHtml(x.why)}</td></tr>`).join('')}</table></div>`;
+}
+function renderTourStandings(body) {
+  const left = tour.rounds.reduce((n, r) => n + r.tables.filter(tb => !tb.result).length, 0);
+  body.innerHTML = `${standingsTable(tourStandings(tour))}
+    <p class="hint">Most wins first. Tiebreaks: two tied, head-to-head; three or more, record against everyone else; then total life left in games won; then a coin flip. ${left ? `${left} match${left === 1 ? '' : 'es'} left.` : 'All matches played.'}</p>`;
+}
+function renderTourSchedule(body) {
+  body.innerHTML = tour.rounds.map((r, ri) => `<h3 class="sub-h">Round ${ri + 1}${ri === tour.round && !tour.over ? ' · now' : ''}</h3>
+    ${r.dealt ? `<div class="t-tables">${r.tables.map((tb, ti) => tableCard(tb, ti, ri, false)).join('')}</div>`
+      : `<p class="hint">${r.tables.map(tb => `${escapeHtml(tName(tb.a))} vs ${escapeHtml(tName(tb.b))}`).join(' · ')}. Decks are revealed when the round starts.</p>`}
+    ${r.bye !== null ? `<p class="hint">Bye: ${escapeHtml(tName(r.bye))}</p>` : ''}`).join('');
+}
+function renderTourDecks(body) {
+  const rows = tour.decks.map(d => {
+    let played = 0, won = 0;
+    tour.rounds.forEach(r => r.tables.forEach(tb => tb.decks.forEach((id, k) => {
+      if (id !== d.id || !tb.result) return; played++; if (tb.result.winner === k) won++;
+    })));
+    return { name: d.name, played, won };
+  }).sort((a, b) => (b.played ? b.won / b.played : -1) - (a.played ? a.won / a.played : -1));
+  body.innerHTML = `<div class="tablewrap"><table class="rtable"><tr><th>Deck</th><th>Played</th><th>Won</th><th>Win %</th></tr>
+    ${rows.map(x => `<tr><td>${escapeHtml(x.name)}</td><td class="num">${x.played}</td><td class="num">${x.won}</td><td class="num">${x.played ? Math.round(100 * x.won / x.played) + '%' : '—'}</td></tr>`).join('')}</table></div>
+    <p class="hint">Results from this tournament only, for the deck balance pass.</p>`;
+}
+function renderTour() {
+  const body = document.getElementById('tour-body'), tabs = document.getElementById('tour-tabs');
+  const sub = document.getElementById('tour-sub');
+  if (!tour) {
+    if (!tset) newTourSetup();
+    tabs.hidden = true; sub.textContent = 'Round robin · single games · random decks';
+    renderTourSetup(body); return;
+  }
+  tabs.hidden = false;
+  sub.textContent = tour.over ? 'Finished' : `${tour.players.length} players · round ${tour.round + 1} of ${tour.rounds.length}`;
+  tabs.innerHTML = [['round', tour.over ? 'Result' : 'Round'], ['standings', 'Standings'], ['schedule', 'Schedule'], ['decks', 'Decks']]
+    .map(([k, l]) => `<button class="tog rtab" role="tab" data-ttab="${k}" aria-selected="${tui.tab === k}">${l}</button>`).join('');
+  ({ round: renderTourRound, standings: renderTourStandings, schedule: renderTourSchedule, decks: renderTourDecks })[tui.tab](body);
+}
+
+function playTourMatch(ti) {
+  const tb = tour.rounds[tour.round].tables[ti];
+  const first = Math.floor(Math.random() * 2);
+  pushUndo(true);
+  state = newState(state, tour.format, tour.life, first);
+  state.match = newMatch(1, first);
+  state.match.tour = { tid: tour.id, r: tour.round, t: ti };
+  state.players[0].name = tName(tb.a); state.players[1].name = tName(tb.b);
+  state.players[0].kit = tb.decks[0]; state.players[1].kit = tb.decks[1];
+  addLog({ p: first, text: `goes first · round ${tour.round + 1}, table ${ti + 1}` });
+  panels.forEach((_, i) => { closeDrawer(i); closePicker(i); closeEditor(i); closeAnthem(i); closeArtPick(i); });
+  closeSheets(); commit();
+  announce(state.players[first].name, 'goes first');
+}
+// Called after every recorded game: a finished tournament match on this device fills in its table
+function tourReport(m) {
+  if (!tour || !m.tour || m.tour.tid !== tour.id || !m.over || (m.winner !== 0 && m.winner !== 1)) return;
+  const tb = tour.rounds[m.tour.r] && tour.rounds[m.tour.r].tables[m.tour.t];
+  if (!tb) return;
+  tb.result = { winner: m.winner, life: Math.max(0, state.players[m.winner].life), src: 'ipad', matchId: m.id, at: Date.now() };
+  saveTour();
+  toast(`Round ${m.tour.r + 1}, table ${m.tour.t + 1}: ${state.players[m.winner].name} wins. Saved to the tournament.`, true);
+}
+// Undo that takes back the winning game also takes back the tournament result
+function tourReconcile() {
+  const m = state.match;
+  if (!tour || !m || !m.tour || m.tour.tid !== tour.id || m.over) return;
+  const tb = tour.rounds[m.tour.r] && tour.rounds[m.tour.r].tables[m.tour.t];
+  if (tb && tb.result && tb.result.matchId === m.id) { tb.result = null; saveTour(); }
+}
+function finishTour() {
+  tour.over = true;
+  const st = tourStandings(tour);
+  pastTours.push({ id: tour.id, date: new Date(tour.started).toISOString(), players: tour.players.slice(), champion: st[0].name,
+    standings: st.map(x => ({ name: x.name, w: x.w, l: x.l, life: x.life, why: x.why })) });
+  savePastTours(); saveTour();
+}
+
+document.getElementById('btn-tour').addEventListener('click', () => { tui.entry = null; tui.confirmEnd = false; tui.msg = ''; renderTour(); openSheet('sheet-tour'); });
+document.getElementById('sheet-tour').addEventListener('input', e => {
+  const id = e.target.id;
+  if (id.startsWith('tn-') && id !== 'tn-deck') tset.names[Number(id.slice(3))] = e.target.value;
+  else if (id === 't-lifein') tui.life = e.target.value;
+});
+document.getElementById('sheet-tour').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  const d = b.dataset;
+  if (!('tend' in d)) tui.confirmEnd = false;
+  tui.msg = '';
+  if (d.ttab) tui.tab = d.ttab;
+  else if (d.tcount) { tset.count = Math.min(12, Math.max(3, tset.count + Number(d.tcount))); tset.err = ''; }
+  else if (d.tdeck) { tset.decks.has(d.tdeck) ? tset.decks.delete(d.tdeck) : tset.decks.add(d.tdeck); }
+  else if ('tnewdeck' in d) tset.newDeck = true;
+  else if ('tsavedeck' in d) {
+    const name = document.getElementById('tn-deck').value.trim();
+    if (!name) return;
+    const k = { id: uid(), name, tokens: [], anthems: [] }; kits.push(k); saveKits(); tset.decks.add(k.id); tset.newDeck = false;
+  }
+  else if (d.tformat) tset.format = d.tformat;
+  else if ('tstart' in d) { startTour(); return; }
+  else if (d.tplay) { playTourMatch(Number(d.tplay)); return; }
+  else if (d.tenter) { tui.entry = Number(d.tenter); tui.win = undefined; tui.life = ''; }
+  else if (d.twin) tui.win = Number(d.twin);
+  else if ('tcancel' in d) tui.entry = null;
+  else if (d.tsave) {
+    const life = parseInt(tui.life, 10);
+    if (!(life >= 0)) { tui.msg = "Enter the winner's life left (0 or more)."; renderTour(); return; }
+    tour.rounds[tour.round].tables[Number(d.tsave)].result = { winner: tui.win, life, src: 'hand', at: Date.now() };
+    tui.entry = null; saveTour();
+  }
+  else if (d.tclear) { tour.rounds[tour.round].tables[Number(d.tclear)].result = null; saveTour(); }
+  else if ('tredeal' in d) {
+    if (!dealDecks(tour, tour.round)) tui.msg = "Couldn't re-deal with these rules."; else saveTour();
+  }
+  else if ('tnext' in d) {
+    if (tour.round === tour.rounds.length - 1) finishTour();
+    else { tour.round++; tour.rounds[tour.round].dealt = true; saveTour(); }
+    tui.tab = 'round';
+  }
+  else if ('tend' in d) {
+    if (!tui.confirmEnd) tui.confirmEnd = true; else { tour = null; tui.confirmEnd = false; saveJSON(TOUR_KEY, null); }
+  }
+  else if ('tnew' in d) { tour = null; saveJSON(TOUR_KEY, null); tset = null; }
+  else return;
+  renderTour();
+  if (d.tenter) { const inp = document.getElementById('t-lifein'); if (inp) inp.focus(); }
+  if ('tnewdeck' in d) { const inp = document.getElementById('tn-deck'); if (inp) inp.focus(); }
+});
+
 /* Backup and restore */
-const BACKUP_KEYS = { history: HIST_KEY, decks: KITS_KEY, myTokens: MINE_KEY, house: HOUSE_KEY, rulesPrefs: NAV_KEY, cards: CARDS_KEY };
+const BACKUP_KEYS = { history: HIST_KEY, decks: KITS_KEY, myTokens: MINE_KEY, house: HOUSE_KEY, rulesPrefs: NAV_KEY, cards: CARDS_KEY, tournament: TOUR_KEY, tournaments: TOURS_KEY };
 function renderBackup() {
   const body = document.getElementById('b-body'), pend = hui.backup;
   body.innerHTML = `<div class="dform">
@@ -3022,7 +3401,7 @@ function renderBackup() {
     <div class="toggles"><button class="tog" data-bkexport>Back up now</button>
       <label class="tog" for="bk-file">Restore from a backup…</label><input class="file" type="file" id="bk-file" accept="application/json,.json"></div>
     ${pend ? `<div class="hr"><h4>Backup from ${escapeHtml(new Date(pend.exported).toLocaleString())}</h4>
-      <small>${((pend.data.history || {}).matches || []).length} matches · ${((pend.data.history || {}).games || []).length} games · ${(pend.data.decks || []).length} decks · ${(pend.data.myTokens || []).length} saved tokens · ${((pend.data.house || {}).rulings || []).length} rulings${pend.data.photos ? ' · photos' : ''}</small>
+      <small>${((pend.data.history || {}).matches || []).length} matches · ${((pend.data.history || {}).games || []).length} games · ${(pend.data.decks || []).length} decks · ${(pend.data.myTokens || []).length} saved tokens · ${((pend.data.house || {}).rulings || []).length} rulings${(pend.data.tournaments || []).length ? ` · ${pend.data.tournaments.length} past tournaments` : ''}${pend.data.tournament ? ' · tournament in progress' : ''}${pend.data.photos ? ' · photos' : ''}</small>
       <div class="toggles"><button class="tog" data-bkmerge>Merge with this iPad</button><button class="tog danger" data-bkreplace>Replace this iPad's data</button><button class="tog" data-bkcancel>Cancel</button></div></div>` : ''}
     <p class="hint" id="bk-msg"></p></div>`;
 }
@@ -3030,6 +3409,9 @@ async function exportBackup() {
   const data = {};
   Object.entries(BACKUP_KEYS).forEach(([k, key]) => { data[k] = loadJSON(key, null); });
   if (hui.photos) data.photos = bgs;
+  // Player setup and the best-of default, so moving to a new web address loses nothing
+  data.seats = state.players.map(p => ({ name: p.name, color: p.color, kit: p.kit || null }));
+  try { data.bestOf = Number(localStorage.getItem(BO_KEY)) || null; } catch (e) { /* optional */ }
   const json = JSON.stringify({ app: 'duel-life-tracker', version: 1, exported: new Date().toISOString(), data });
   const name = `life-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
   const msg = document.getElementById('bk-msg');
@@ -3061,6 +3443,13 @@ function applyBackup(replace) {
     if (d.history) hist = d.history; if (d.decks) kits = d.decks; if (d.myTokens) myTokens = d.myTokens;
     if (d.house) house = d.house; if (d.rulesPrefs) rprefs = d.rulesPrefs; if (d.cards) cardCache = d.cards;
     if (d.photos) bgs = d.photos;
+    if (Array.isArray(d.seats) && d.seats.length === 2) {
+      d.seats.forEach((p, i) => { Object.assign(state.players[i], { name: p.name, color: p.color, kit: p.kit || null }); });
+      save();
+    }
+    if (d.bestOf) { try { localStorage.setItem(BO_KEY, String(d.bestOf)); } catch (e) { /* optional */ } }
+    if (d.tournament !== undefined) tour = d.tournament;
+    if (d.tournaments) pastTours = d.tournaments;
   } else {
     if (d.history) {
       hist.games = byId(hist.games, d.history.games);
@@ -3073,9 +3462,11 @@ function applyBackup(replace) {
     if (d.house) { house.rulings = byId(house.rulings, d.house.rulings); house.rules = byId(house.rules, d.house.rules); }
     if (d.rulesPrefs) { rprefs.marks = [...new Set([...rprefs.marks, ...(d.rulesPrefs.marks || [])])]; if (!rprefs.formats && d.rulesPrefs.formats) rprefs.formats = d.rulesPrefs.formats; }
     if (d.cards) { const names = new Set(cardCache.map(c => c.name)); d.cards.forEach(c => { if (!names.has(c.name)) cardCache.push(c); }); }
+    if (d.tournament && !tour) tour = d.tournament;
+    if (d.tournaments) pastTours = byId(pastTours, d.tournaments);
     if (d.photos) [0, 1].forEach(i => { if (!bgs[i] && d.photos[i]) { bgs[i] = d.photos[i]; if (d.photos['credit' + i]) bgs['credit' + i] = d.photos['credit' + i]; } });
   }
-  saveHist(); saveKits(); saveMine(); saveJSON(HOUSE_KEY, house); saveJSON(NAV_KEY, rprefs); saveJSON(CARDS_KEY, cardCache);
+  saveHist(); saveKits(); saveMine(); saveJSON(HOUSE_KEY, house); saveJSON(NAV_KEY, rprefs); saveJSON(CARDS_KEY, cardCache); saveJSON(TOUR_KEY, tour); savePastTours();
   if (d.photos) saveBgs();
   renderBg(0); renderBg(1); render();
   hui.backup = null; renderBackup();
