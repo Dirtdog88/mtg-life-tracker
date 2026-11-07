@@ -67,7 +67,7 @@ after a move to a new address, restore from a backup (History → Backup) to bri
 index.html             the whole app
 rules.json             Comprehensive Rules for offline search (updated monthly)
 sw.js                  offline cache (bump VERSION after changes)
-scripts/               rules updater
+scripts/               rules updater; tournament check (node scripts/2026-11-07-tournament-check.mjs)
 manifest.webmanifest   Home Screen name and icons
 CNAME                  custom domain for GitHub Pages
 icons/                 app icons
