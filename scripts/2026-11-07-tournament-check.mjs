@@ -1,4 +1,4 @@
-// Checks tournament mode's pairings, deck dealing and tiebreaks without a browser.
+// Checks tournament mode's pairings, deck dealing and tiebreaks, and the per-player stats, without a browser.
 // It loads the real functions out of index.html (no copies), simulates many events, and exits non-zero on any failure.
 // Run: node scripts/2026-11-07-tournament-check.mjs
 import { readFileSync } from 'node:fs';
@@ -118,6 +118,38 @@ const why = (t, name) => T.tourStandings(t).find(x => x.name === name).why;
   const first = order(t);
   ok(Array.from({ length: 20 }, () => order(t)).every(o => o === first), 'coin flip changes between calls');
   ok(why(t, first[0]) === 'coin flip', `coin flip reason: ${why(t, first[0])}`);
+}
+
+// ---------- Player stats ----------
+const S = new Function(`${slice('/* Player stats (pure', '/* End player stats */')}; return { playerStats, isSeat, lifeLeftOf };`)();
+{
+  const alex = { id: 'pA', name: 'Alex', aliases: ['Alexander'] };
+  const g = (o) => ({ date: '2026-11-0' + (o.day || 1) + 'T10:00:00Z', format: 'constructed', decks: ['Elves', 'Goblins'], trail: [[1, 0, 20, 20], [5, 0, 7, 0]], first: 0, ...o });
+  const games = [
+    g({ id: 1, players: ['Alex', 'Chris'], winner: 0 }),                                   // old game, by name: win, 7 life left
+    g({ id: 2, players: ['Alexander', 'Elena'], winner: 1, day: 2 }),                     // old name: loss
+    g({ id: 3, players: ['Chris', 'Al'], pids: ['pC', 'pA'], winner: 1, first: 0, day: 3, trail: [[1, 0, 20, 20], [4, 1, 0, 12]] }), // renamed, by id: win on the draw, 12 left
+    g({ id: 4, players: ['Alex', 'Chris'], pids: [null, 'pC'], winner: 'draw', day: 4 }), // guest named Alex before profiles linked: counts by name
+    g({ id: 5, players: ['Elena', 'Chris'], winner: 0, day: 5 }),                          // not Alex
+    g({ id: 6, players: ['Alex', 'Elena'], pids: ['pOther', null], winner: 0, day: 6 }),  // another profile called Alex: not this one
+    g({ id: 7, players: ['Alex', 'Elena'], pids: ['pA', 'pE'], winner: 0, first: null, trail: [], lifeLeft: 9, tour: 't1', src: 'hand', day: 7 }) // hand-entered tournament win
+  ];
+  const matches = games.map(x => ({ ...x, over: x.id !== 4 }));
+  const who = (name, pid) => ({ key: pid || { chris: 'pC', elena: 'pE' }[name.toLowerCase()] || name, label: name });
+  const st = S.playerStats(alex, games, matches, [{ champion: 'Alex' }, { champion: 'Alex', championPid: 'pOther' }, { champion: 'Chris', championPid: 'pA' }], who);
+  ok(st.games.w === 3 && st.games.l === 1 && st.games.d === 1, `stats games ${JSON.stringify(st.games)}`);
+  ok(st.matches.w === 3 && st.matches.l === 1 && st.matches.d === 0, `stats matches ${JSON.stringify(st.matches)}`);
+  // On the play in games 1 (won), 2 (lost) and 4 (drawn); on the draw in game 3 (won); game 7 has no first player
+  ok(st.play.w === 1 && st.play.l === 1 && st.play.d === 1 && st.draw.w === 1 && st.draw.l === 0, `play/draw ${JSON.stringify([st.play, st.draw])}`);
+  ok(st.lifeInWins === 7 + 12 + 9 && st.winsWithLife === 3, `life in wins ${st.lifeInWins}/${st.winsWithLife}`);
+  ok(st.titles === 2, `titles ${st.titles}`);
+  ok(st.tourGames.w === 1, `tournament games ${JSON.stringify(st.tourGames)}`);
+  const chris = st.opps.find(o => o.label === 'Chris');
+  // Chris by name (game 1) and by profile (games 3, 4) is one row; so is Elena
+  ok(st.opps.length === 2 && chris && chris.n === 3 && chris.w === 2 && chris.d === 1, `opponents ${JSON.stringify(st.opps)}`);
+  ok(st.decks.find(d => d.label === 'Elves').n === 4 && st.decks.find(d => d.label === 'Goblins').n === 1, `decks ${JSON.stringify(st.decks)}`);
+  ok(st.recent.length === 5 && st.recent[0].tour && st.recent[0].result === 'w', `recent ${JSON.stringify(st.recent[0])}`);
+  ok(S.lifeLeftOf({ winner: 'draw', trail: [[1, 0, 3, 3]] }) === null, 'no life left for a draw');
 }
 
 console.log(`${checks} checks, ${fails} failed`);

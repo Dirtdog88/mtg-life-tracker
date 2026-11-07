@@ -544,6 +544,51 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
 .t-champ { text-align: center; padding: 18px; }
 .t-champ b { display: block; font-family: var(--f-title); font-size: clamp(28px, 6vw, 48px); letter-spacing: .06em; }
 .t-err { color: var(--danger); font-size: 13px; margin: 0; }
+/* ---------- Home, players and stats ---------- */
+.home {
+  position: fixed; inset: 0; z-index: 18; background: var(--table); overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: calc(28px + env(safe-area-inset-top, 0px)) 16px calc(28px + env(safe-area-inset-bottom, 0px));
+}
+.home-in { width: min(880px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.home h1 { margin: 0; text-align: center; font-family: var(--f-title); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: clamp(24px, 4vw, 36px); }
+.home .tagline { margin: -8px 0 0; text-align: center; color: var(--muted); font-size: 15px; }
+.hgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.htile {
+  min-height: 112px; padding: 16px 18px; border-radius: 16px; border: 1px solid var(--line); background: rgba(255, 255, 255, .04);
+  text-align: left; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; min-width: 0;
+}
+.htile b { font-family: var(--f-title); font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
+.htile span { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.htile:active { background: rgba(255, 255, 255, .1); }
+.htile.primary { background: var(--ink); color: var(--table); border-color: var(--ink); }
+.htile.primary span { color: rgba(12, 13, 17, .7); }
+.htile.wide { grid-column: 1 / -1; min-height: 92px; }
+.hrow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.pchip {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 14px 4px 4px; border-radius: 999px;
+  border: 1px solid var(--line); background: rgba(255, 255, 255, .04); font-weight: 600; max-width: 100%;
+}
+.pchip[aria-pressed="true"] { border-color: var(--ink); background: rgba(255, 255, 255, .14); }
+.pchip:disabled { opacity: .35; }
+.pchip .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.av {
+  width: 36px; height: 36px; border-radius: 50%; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--c, #555) center / cover no-repeat; color: var(--table); font-weight: 700; font-size: 15px;
+}
+.av.lg { width: 72px; height: 72px; font-size: 28px; }
+.prow { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.prow .pinfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.prow .pinfo strong { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prow .pinfo small { color: var(--muted); font-size: 13px; }
+.pedit { --p: var(--ink); }
+.pedit input[type="text"] {
+  width: 100%; height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(0, 0, 0, .3);
+  color: var(--ink); font-family: var(--f-ui); font-size: 16px; -webkit-user-select: text; user-select: text;
+}
+.pedit .phead { display: flex; align-items: center; gap: 14px; }
+.pedit .phead input { flex: 1; min-width: 0; }
+.wl-w { color: #84d9a4; font-weight: 700; }
+.wl-l { color: var(--danger); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -557,6 +602,9 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
 
   <nav class="strip" aria-label="Table controls">
     <div class="group">
+      <button class="sbtn" id="btn-home" aria-label="Home">
+        <svg viewBox="0 0 24 24"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="t">Home</span>
+      </button>
       <button class="sbtn" id="btn-new" aria-label="New game">
         <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span class="t">New</span>
       </button>
@@ -590,6 +638,37 @@ mark { background: rgba(233, 197, 92, .32); color: var(--ink); border-radius: 3p
     </div>
   </nav>
 
+</div>
+
+<!-- Home: what opens first. Continue, new game, tournament, stats, players -->
+<div class="home" id="home" hidden>
+  <div class="home-in">
+    <h1>Duel Life Tracker</h1>
+    <p class="tagline" id="home-sub"></p>
+    <div class="hgrid" id="home-grid"></div>
+    <div class="hrow" id="home-faces"></div>
+    <div class="hrow">
+      <button class="tog" data-home="rules">Rules</button>
+      <button class="tog" data-home="matches">All matches</button>
+      <button class="tog" data-home="backup">Backup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Players: the regulars, with their colors, backgrounds and decks -->
+<div class="scrim" id="sheet-players" hidden>
+  <div class="sheet rules-sheet" role="dialog" aria-labelledby="players-title">
+    <div class="rules-head"><h2 id="players-title">Players</h2><span class="rules-ver" id="players-sub"></span><button class="btn" data-close>Close</button></div>
+    <section class="rpane" id="players-body"></section>
+  </div>
+</div>
+
+<!-- Stats: one player's record -->
+<div class="scrim" id="sheet-stats" hidden>
+  <div class="sheet rules-sheet" role="dialog" aria-labelledby="stats-title">
+    <div class="rules-head"><h2 id="stats-title">Stats</h2><span class="rules-ver" id="stats-sub"></span><button class="btn" data-close>Close</button></div>
+    <section class="rpane" id="stats-body"></section>
+  </div>
 </div>
 
 <!-- New game -->
@@ -740,6 +819,15 @@ function shrink(file, maxSide, quality) {
 
 async function setPhoto(i, file) {
   bgMessage(i, 'Loading photo…');
+  const pr = profileOf(state.players[i].pid);
+  if (pr) {
+    try {
+      const saved = await setProfilePhoto(pr, await shrink(file, 1400, .8));
+      renderBgs(); bgMessage(i, saved ? `Photo saved to ${pr.name}` : 'Photo shown, but the iPad had no room to save it.', !saved);
+      if (saved) setTimeout(() => bgMessage(i, ''), 2500);
+    } catch (e) { bgMessage(i, 'That file could not be opened as an image. Try a JPEG or PNG.', true); }
+    return;
+  }
   try {
     delete bgs['credit' + i];
     bgs[i] = await shrink(file, 1400, .8);
@@ -758,11 +846,134 @@ function bgMessage(i, text, err) {
   m.textContent = text; m.classList.toggle('err', !!err);
 }
 function renderBg(i) {
-  const el = panels[i];
-  el.querySelector('[data-bg]').style.backgroundImage = bgs[i] ? `url("${bgs[i]}")` : '';
-  el.classList.toggle('has-bg', !!bgs[i]);
-  el.querySelector('[data-bg-remove]').hidden = !bgs[i];
-  el.querySelector('[data-bg-credit]').textContent = bgs[i] && bgs['credit' + i] ? `Art: ${bgs['credit' + i]} · Scryfall` : '';
+  const el = panels[i], bg = seatBg(i);
+  const key = bg ? `${bg.url.length}:${bg.url.slice(-48)}` : '';
+  if (el.dataset.bgk !== key) { el.querySelector('[data-bg]').style.backgroundImage = bg ? `url("${bg.url}")` : ''; el.dataset.bgk = key; }
+  el.classList.toggle('has-bg', !!bg);
+  el.querySelector('[data-bg-remove]').hidden = !bg;
+  el.querySelector('[data-bg-credit]').textContent = bg && bg.credit ? `Art: ${bg.credit} · Scryfall` : '';
+}
+function renderBgs() { renderBg(0); renderBg(1); }
+
+/* ---------- Player profiles ---------- */
+// The regulars: name, color, background and decks, kept on this device. Games record each seat's profile id (`pids`), so
+// renaming someone keeps their stats together; games from before profiles match by name (their name or an old one in
+// `aliases`). Card art is stored as a link; an uploaded photo is too big for localStorage once there are several
+// players, so it lives in IndexedDB and is kept in memory (photoCache) once loaded.
+const PLAYERS_KEY = 'mtg-duel-players-v1';
+let roster = (() => { try { const r = JSON.parse(localStorage.getItem(PLAYERS_KEY)); return Array.isArray(r) ? r : []; } catch (e) { return []; } })();
+function saveRoster() { try { localStorage.setItem(PLAYERS_KEY, JSON.stringify(roster)); } catch (e) { storageFull(); } }
+const profileOf = pid => (pid && roster.find(p => p.id === pid)) || null;
+const profileByName = name => { const n = String(name || '').trim().toLowerCase(); return n ? roster.find(p => p.name.toLowerCase() === n) || null : null; };
+const SUGGESTED_PLAYERS = ['Alex', 'Chris', 'Elena'];
+// Who an opponent in a past game is now: their profile (by id, name or an old name), else the name as recorded
+function whoIs(name, pid) {
+  const n = String(name || '').trim().toLowerCase();
+  const pr = profileOf(pid) || (!pid && (profileByName(name) || roster.find(p => p.aliases.some(a => a.toLowerCase() === n))));
+  return pr ? { key: pr.id, label: pr.name } : { key: pid || 'name:' + n, label: name };
+}
+function newProfile(name, color) {
+  const used = new Set(roster.map(p => p.color));
+  const free = Object.keys(COLORS).find(c => !used.has(c)) || 'blue';
+  return { id: uid(), name, color: color || free, aliases: [], art: null, photo: false, decks: [], deck: null, created: Date.now() };
+}
+
+let photoDbP = null;
+function photoDb() {
+  if (!photoDbP) photoDbP = new Promise((res, rej) => {
+    const r = indexedDB.open('mtg-duel', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('photos');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  return photoDbP;
+}
+async function idbPhotos(mode, fn) {
+  const db = await photoDb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('photos', mode), req = fn(tx.objectStore('photos'));
+    tx.oncomplete = () => res(req ? req.result : undefined); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error);
+  });
+}
+const photoCache = {};
+async function loadPhoto(id) {
+  if (photoCache[id] !== undefined) return photoCache[id];
+  try { photoCache[id] = (await idbPhotos('readonly', st => st.get(id))) || null; } catch (e) { photoCache[id] = null; }
+  return photoCache[id];
+}
+async function setProfilePhoto(pr, data) {
+  photoCache[pr.id] = data; pr.photo = true; pr.art = null; saveRoster();
+  try { await idbPhotos('readwrite', st => st.put(data, pr.id)); return true; } catch (e) { return false; }
+}
+function setProfileArt(pr, art) {
+  pr.art = art; pr.photo = false; delete photoCache[pr.id]; saveRoster();
+  idbPhotos('readwrite', st => st.delete(pr.id)).catch(() => {});
+}
+function clearProfileBg(pr) { setProfileArt(pr, null); }
+// What a profile shows as its background or avatar: card art, an uploaded photo (once loaded), or nothing
+function profileBg(pr) {
+  if (!pr) return null;
+  if (pr.art && okArtUrl(pr.art.url)) return { url: pr.art.url, credit: pr.art.credit || '' };
+  if (pr.photo && photoCache[pr.id]) return { url: photoCache[pr.id] };
+  return null;
+}
+// A seat with a profile shows the profile's background; a guest seat keeps its own photo, as before profiles
+function seatBg(i) {
+  const pid = state.players[i].pid;
+  if (pid && profileOf(pid)) return profileBg(profileOf(pid));
+  return bgs[i] ? { url: bgs[i], credit: bgs['credit' + i] || '' } : null;
+}
+function avatarHtml(pr, cls = '') {
+  const bg = profileBg(pr);
+  return `<span class="av ${cls}" style="--c:${COLORS[pr.color] || '#555'}${bg ? `;background-image:url('${escapeHtml(bg.url)}')` : ''}" aria-hidden="true">${bg ? '' : escapeHtml(pr.name.slice(0, 1).toUpperCase())}</span>`;
+}
+// Keep seats in step with their profiles (after a rename, a color change or a delete)
+function syncSeats() {
+  let changed = false;
+  state.players.forEach(p => {
+    if (!p.pid) return;
+    const pr = profileOf(p.pid);
+    if (!pr) { p.pid = null; changed = true; return; }
+    if (p.name !== pr.name || p.color !== pr.color) { p.name = pr.name; p.color = pr.color; changed = true; }
+  });
+  if (changed) { save(); render(); }
+  renderBgs();
+}
+// Make a profile for a name. A seat already using that name joins it and hands over its color and photo.
+function addProfile(name, opts = {}) {
+  const clean = String(name || '').trim().slice(0, 18);
+  if (!clean || profileByName(clean)) return profileByName(clean);
+  const seat = state.players.findIndex(p => !p.pid && p.name.toLowerCase() === clean.toLowerCase());
+  const pr = newProfile(clean, seat >= 0 ? state.players[seat].color : opts.color);
+  roster.push(pr); saveRoster();
+  if (seat >= 0) {
+    state.players[seat].pid = pr.id;
+    const bg = bgs[seat], credit = bgs['credit' + seat] || '';
+    const drop = () => { delete bgs[seat]; delete bgs['credit' + seat]; saveBgs(); renderBgs(); };
+    if (bg && okArtUrl(bg)) { setProfileArt(pr, { url: bg, credit }); drop(); }
+    else if (bg) setProfilePhoto(pr, bg).then(ok => { if (ok) drop(); });
+    save();
+  }
+  return pr;
+}
+function renameProfile(pr, name) {
+  const clean = String(name || '').trim().slice(0, 18);
+  if (!clean || clean === pr.name) return true;
+  const other = profileByName(clean);
+  if (other && other !== pr) return false;
+  if (!pr.aliases.includes(pr.name)) pr.aliases.push(pr.name);
+  pr.aliases = pr.aliases.filter(a => a.toLowerCase() !== clean.toLowerCase());
+  pr.name = clean; saveRoster(); syncSeats();
+  return true;
+}
+// Names worth offering as new profiles: people in past games, then the usual crowd, minus anyone already on the roster
+function profileSuggestions() {
+  const known = [...knownNames(), ...SUGGESTED_PLAYERS];
+  const seen = new Set();
+  return known.filter(n => {
+    const k = n.trim().toLowerCase();
+    if (!k || seen.has(k) || /^player \d+$/.test(k) || profileByName(n) || roster.some(p => p.aliases.some(a => a.toLowerCase() === k))) return false;
+    seen.add(k); return true;
+  });
 }
 const COLORS = {
   white: '#f0deaa', blue: '#8db8ff', black: '#c1a6e6', red: '#ff8f6e',
@@ -788,14 +999,14 @@ const COUNTERS = [
 ];
 
 function freshPlayer(name, color, life) {
-  return { name, color, life, poison: 0, cmd: 0, tax: 0, energy: 0, exp: 0, storm: 0, tokens: [], anthems: [], kit: null };
+  return { name, color, life, poison: 0, cmd: 0, tax: 0, energy: 0, exp: 0, storm: 0, tokens: [], anthems: [], kit: null, pid: null };
 }
 function newState(prev, formatId, life, first) {
   const p = prev ? prev.players : [{ name: 'Player 1', color: 'blue' }, { name: 'Player 2', color: 'red' }];
   return {
     format: formatId, startLife: life,
     // The chosen deck kit carries over to the next game; tokens and anthems do not
-    players: [0, 1].map(k => Object.assign(freshPlayer(p[k].name, p[k].color, life), { kit: p[k].kit || null })),
+    players: [0, 1].map(k => Object.assign(freshPlayer(p[k].name, p[k].color, life), { kit: p[k].kit || null, pid: p[k].pid || null })),
     first, active: first, turn: 1, monarch: null, initiative: null, dayNight: null,
     startedAt: Date.now(), log: [],
     // Life after every change, as [turn, active player, life 0, life 1], for the game recap graph
@@ -898,6 +1109,7 @@ function buildPanel(i) {
           <input id="name-${i}" data-name maxlength="18" autocomplete="off" aria-label="Player name">
           <button class="done" data-close-drawer>Done</button>
         </div>
+        <p class="hint" data-pnote hidden></p>
         <div class="swatches"><span class="label">Color</span>${swatches}</div>
         <div class="rows">${rows}</div>
         <div class="photo">
@@ -963,7 +1175,10 @@ function buildPanel(i) {
   });
   ed.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.target.blur(); });
   el.querySelectorAll('[data-drawer] .sw').forEach(b => b.addEventListener('click', () => {
-    state.players[i].color = b.dataset.color; save(); render();
+    state.players[i].color = b.dataset.color;
+    const pr = profileOf(state.players[i].pid);
+    if (pr) { pr.color = b.dataset.color; saveRoster(); }
+    save(); render();
   }));
   el.querySelectorAll('[data-ctr]').forEach(b => bindStep(b, i));
   el.querySelectorAll('[data-tog]').forEach(b => b.addEventListener('click', () => {
@@ -979,7 +1194,9 @@ function buildPanel(i) {
     if (file) setPhoto(i, file);
   });
   el.querySelector('[data-bg-remove]').addEventListener('click', () => {
-    delete bgs[i]; delete bgs['credit' + i]; saveBgs(); bgMessage(i, ''); renderBg(i);
+    const pr = profileOf(state.players[i].pid);
+    if (pr) clearProfileBg(pr); else { delete bgs[i]; delete bgs['credit' + i]; saveBgs(); }
+    bgMessage(i, ''); renderBgs();
   });
   el.querySelector('[data-findart]').addEventListener('click', () => openArtPick(i, 'bg'));
   const ap = el.querySelector('[data-artpick]');
@@ -989,14 +1206,18 @@ function buildPanel(i) {
     if (e.key === 'Enter' && e.target.matches('[data-aq]')) { e.preventDefault(); e.target.blur(); loadCardArts(i, e.target.value.trim(), false); }
   });
   const input = el.querySelector('[data-name]');
-  input.addEventListener('input', () => { state.players[i].name = input.value.trim() || `Player ${i + 1}`; save(); renderNames(); });
+  input.addEventListener('input', () => { if (state.players[i].pid) return; state.players[i].name = input.value.trim() || `Player ${i + 1}`; save(); renderNames(); });
   input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
 }
 
 function openDrawer(i) {
   closePicker(i); closeEditor(i); closeAnthem(i); closeArtPick(i);
   const d = panels[i].querySelector('[data-drawer]');
-  panels[i].querySelector('[data-name]').value = state.players[i].name;
+  const pr = profileOf(state.players[i].pid), input = panels[i].querySelector('[data-name]');
+  input.value = state.players[i].name; input.readOnly = !!pr;
+  const note = panels[i].querySelector('[data-pnote]');
+  note.hidden = !pr;
+  note.textContent = pr ? `${pr.name}'s color and background are saved to their player profile. Rename them in Home → Players.` : '';
   d.hidden = false;
 }
 function closeDrawer(i) {
@@ -1487,7 +1708,7 @@ const offlineMsg = "Couldn't reach Scryfall. Check the iPad's internet connectio
 function showArts(i, arts, emptyMsg) {
   const ui = artUi[i]; if (!ui) return;
   ui.results = arts;
-  const current = ui.target === 'bg' ? bgs[i] : (() => { const t = state.players[i].tokens.find(x => x.id === ui.tokId); return t && t.art ? t.art.url : ''; })();
+  const current = ui.target === 'bg' ? (seatBg(i) || {}).url : (() => { const t = state.players[i].tokens.find(x => x.id === ui.tokId); return t && t.art ? t.art.url : ''; })();
   panels[i].querySelector('[data-arts]').innerHTML = arts.map((a, n) => `<button class="artopt" data-ap="pick" data-n="${n}" aria-pressed="${a.url === current}">
       <img src="${escapeHtml(a.url)}" alt="${escapeHtml(a.name)} art" loading="lazy">
       <span><b>${escapeHtml(a.name)}</b>${escapeHtml(a.set)}${a.artist ? ` · ${escapeHtml(a.artist)}` : ''}</span></button>`).join('');
@@ -1532,7 +1753,10 @@ function artPickAction(i, b) {
     const art = a === 'pick' ? ui.results[Number(b.dataset.n)] : null;
     if (a === 'pick' && !art) return;
     if (ui.target === 'bg') {
-      bgs[i] = art.url; bgs['credit' + i] = art.artist; saveBgs(); renderBg(i);
+      const pr = profileOf(state.players[i].pid);
+      if (pr) setProfileArt(pr, { url: art.url, credit: art.artist });
+      else { bgs[i] = art.url; bgs['credit' + i] = art.artist; saveBgs(); }
+      renderBgs();
     } else {
       const t = state.players[i].tokens.find(x => x.id === ui.tokId);
       if (t) {
@@ -2028,6 +2252,7 @@ function render() {
     ? '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
     : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
   renderClock();
+  renderBgs();
 }
 
 function renderClock() {
@@ -2039,7 +2264,11 @@ function renderClock() {
 
 /* ---------- Sheets ---------- */
 function openSheet(id) { document.getElementById(id).hidden = false; }
-function closeSheets() { document.querySelectorAll('.scrim').forEach(s => { s.hidden = true; }); }
+function closeSheets() {
+  document.querySelectorAll('.scrim').forEach(s => { s.hidden = true; });
+  const home = document.getElementById('home');
+  if (home && !home.hidden) renderHome();
+}
 document.querySelectorAll('.scrim').forEach(s => {
   s.addEventListener('click', e => { if (e.target === s || e.target.closest('[data-close]')) closeSheets(); });
 });
@@ -2064,19 +2293,21 @@ function renderNewSheet() {
     res.innerHTML = `<div class="opts"><button class="opt" data-openrecap><strong>Continue the match</strong><span>Game ${m.games.length + 1} is next</span></button></div>`;
   } else res.innerHTML = '';
   document.getElementById('ng-note').textContent = m.games.length && !m.over
-    ? `The current match (${m.wins[0]}–${m.wins[1]}) will be saved as unfinished. Colors and photos carry over.`
-    : 'Colors and photos carry over. Life, counters and tokens reset.';
+    ? `The current match (${m.wins[0]}–${m.wins[1]}) will be saved as unfinished.`
+    : 'Pick two players. Their colors, backgrounds and default decks come from their profiles; type a name for a guest.';
   [0, 1].forEach(i => {
     const inp = document.getElementById('ng-n' + i);
     if (document.activeElement !== inp) inp.value = pick.names[i];
-    document.getElementById('ng-known' + i).innerHTML = knownNames().filter(n => n !== pick.names[0] && n !== pick.names[1]).slice(0, 6)
-      .map(n => `<button class="tog chip-s" data-known="${i}" data-name="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
+    const others = knownNames().filter(n => !profileByName(n) && n !== pick.names[0] && n !== pick.names[1] && !/^Player \d+$/.test(n)).slice(0, 4);
+    document.getElementById('ng-known' + i).innerHTML = roster.map(pr => `<button class="pchip" data-pick="${i}" data-pid="${pr.id}" aria-pressed="${pick.pids[i] === pr.id}"
+        ${pick.pids[1 - i] === pr.id ? 'disabled' : ''}>${avatarHtml(pr)}<span class="nm">${escapeHtml(pr.name)}</span></button>`).join('')
+      + others.map(n => `<button class="tog chip-s" data-known="${i}" data-name="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
   });
   document.getElementById('bo-opts').innerHTML = [[1, 'Single game', 'One game'], [3, 'Best of 3', 'First to 2 wins'], [5, 'Best of 5', 'First to 3 wins']]
     .map(([v, t, n]) => `<button class="opt" data-bo="${v}" aria-pressed="${pick.bestOf === v}"><strong>${t}</strong><span>${n}</span></button>`).join('');
   document.getElementById('deck-opts').innerHTML = [0, 1].map(i => `<div class="sec"><div class="hint">${escapeHtml(pick.names[i] || names[i])}</div><div class="toggles">
       <button class="tog chip-s" data-deck="${i}" data-v="" aria-pressed="${!pick.decks[i]}">No deck</button>
-      ${kits.map(k => `<button class="tog chip-s" data-deck="${i}" data-v="${k.id}" aria-pressed="${pick.decks[i] === k.id}">${escapeHtml(k.name)}</button>`).join('')}
+      ${decksFor(profileOf(pick.pids[i])).map(({ k, fav }) => `<button class="tog chip-s" data-deck="${i}" data-v="${k.id}" aria-pressed="${pick.decks[i] === k.id}">${fav ? '★ ' : ''}${escapeHtml(k.name)}</button>`).join('')}
       <button class="tog chip-s" data-newdeck="${i}">+ New deck</button></div>
       ${pick.newDeck === i ? `<div class="kit-row"><input id="ng-deckname" maxlength="30" autocomplete="off" placeholder="Deck name, e.g. Izzet Prowess" aria-label="New deck name"><button class="tog" data-savedeck="${i}">Save</button></div>` : ''}</div>`).join('');
   const nd = document.getElementById('ng-deckname'); if (nd) nd.focus();
@@ -2097,10 +2328,19 @@ document.getElementById('first-opts').addEventListener('click', e => {
 });
 document.getElementById('sl-minus').addEventListener('click', () => { pick.life = Math.max(1, pick.life - 5); renderNewSheet(); });
 document.getElementById('sl-plus').addEventListener('click', () => { pick.life += 5; renderNewSheet(); });
+// Decks to offer a player: their favorites first (starred), then the rest
+function decksFor(pr) {
+  const fav = new Set(pr ? pr.decks : []);
+  return [...kits.filter(k => fav.has(k.id)).map(k => ({ k, fav: true })), ...kits.filter(k => !fav.has(k.id)).map(k => ({ k, fav: false }))];
+}
+function pickPlayer(i, pr) {
+  pick.pids[i] = pr ? pr.id : null;
+  if (pr) { pick.names[i] = pr.name; if (pr.deck && kits.some(k => k.id === pr.deck)) pick.decks[i] = pr.deck; }
+}
 function openNewSheet() {
   let bo = 1; try { bo = Number(localStorage.getItem(BO_KEY)) || 1; } catch (e) { /* default */ }
   pick = { format: state.format, life: state.startLife, first: 'random', bestOf: bo, names: state.players.map(p => p.name),
-    decks: state.players.map(p => p.kit || null), newDeck: null };
+    pids: state.players.map(p => (profileOf(p.pid) ? p.pid : null)), decks: state.players.map(p => p.kit || null), newDeck: null };
   renderNewSheet(); openSheet('sheet-new');
 }
 document.getElementById('btn-new').addEventListener('click', openNewSheet);
@@ -2109,7 +2349,12 @@ document.getElementById('sheet-new').addEventListener('click', e => {
   const d = b.dataset;
   if (d.result) { closeSheets(); recordResult(d.result === 'draw' ? 'draw' : Number(d.result)); }
   else if ('openrecap' in d) { closeSheets(); openRecap(); }
-  else if (d.known) { pick.names[Number(d.known)] = d.name; renderNewSheet(); }
+  else if (d.known) { pick.names[Number(d.known)] = d.name; pick.pids[Number(d.known)] = null; renderNewSheet(); }
+  else if (d.pick) {
+    const i = Number(d.pick), pr = profileOf(d.pid);
+    if (pick.pids[i] === d.pid) { pick.pids[i] = null; pick.names[i] = ''; } else pickPlayer(i, pr);
+    renderNewSheet();
+  }
   else if (d.bo) { pick.bestOf = Number(d.bo); renderNewSheet(); }
   else if (d.deck) { pick.decks[Number(d.deck)] = d.v || null; renderNewSheet(); }
   else if (d.newdeck) { pick.newDeck = Number(d.newdeck); renderNewSheet(); }
@@ -2120,7 +2365,13 @@ document.getElementById('sheet-new').addEventListener('click', e => {
     pick.decks[Number(d.savedeck)] = k.id; pick.newDeck = null; renderNewSheet();
   }
 });
-['ng-n0', 'ng-n1'].forEach((id, i) => document.getElementById(id).addEventListener('input', e => { pick.names[i] = e.target.value; renderNewSheet(); }));
+// Typing a roster player's name picks that player; any other name is a guest
+['ng-n0', 'ng-n1'].forEach((id, i) => document.getElementById(id).addEventListener('input', e => {
+  pick.names[i] = e.target.value;
+  const pr = profileByName(e.target.value);
+  if (pr && pick.pids[1 - i] !== pr.id) pickPlayer(i, pr); else pick.pids[i] = null;
+  renderNewSheet();
+}));
 document.getElementById('sheet-new').addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'ng-deckname') { e.preventDefault(); document.querySelector('[data-savedeck]').click(); }
 });
@@ -2131,10 +2382,16 @@ document.getElementById('btn-start').addEventListener('click', () => {
   pushUndo(true);
   state = newState(state, pick.format, pick.life, first);
   state.match = newMatch(pick.bestOf, first);
-  state.players.forEach((p, i) => { p.name = (pick.names[i] || '').trim() || p.name; p.kit = pick.decks[i]; });
+  state.players.forEach((p, i) => {
+    const pr = profileOf(pick.pids[i]);
+    p.pid = pr ? pr.id : null;
+    p.name = pr ? pr.name : (pick.names[i] || '').trim() || `Player ${i + 1}`;
+    if (pr) p.color = pr.color;
+    p.kit = pick.decks[i];
+  });
   addLog({ p: first, text: pick.bestOf > 1 ? `goes first in game 1 of a best of ${pick.bestOf}` : 'goes first' });
   panels.forEach((_, i) => { closeDrawer(i); closePicker(i); closeEditor(i); closeAnthem(i); closeArtPick(i); });
-  closeSheets(); commit();
+  closeSheets(); hideHome(); commit(); renderBgs();
   if (random) announce(state.players[first].name, 'goes first');
 });
 
@@ -2783,7 +3040,7 @@ const deckNameOf = i => { const k = kits.find(x => x.id === state.players[i].kit
 function matchRecord() {
   const m = state.match;
   return { id: m.id, date: new Date(m.started).toISOString(), format: state.format, bestOf: m.bestOf,
-    players: state.players.map(p => p.name), decks: [deckNameOf(0), deckNameOf(1)], wins: m.wins.slice(), draws: m.draws,
+    players: state.players.map(p => p.name), pids: state.players.map(p => p.pid || null), decks: [deckNameOf(0), deckNameOf(1)], wins: m.wins.slice(), draws: m.draws,
     winner: m.winner, over: m.over, games: m.games.slice() };
 }
 // Undo can take back a recorded result: drop records the restored game state no longer knows about
@@ -2803,7 +3060,7 @@ function recordResult(w) {
   pushUndo();
   const m = state.match;
   const g = { id: uid(), matchId: m.id, n: m.games.length + 1, date: new Date().toISOString(), format: state.format,
-    players: state.players.map(p => p.name), decks: [deckNameOf(0), deckNameOf(1)], winner: w, first: state.first,
+    players: state.players.map(p => p.name), pids: state.players.map(p => p.pid || null), decks: [deckNameOf(0), deckNameOf(1)], winner: w, first: state.first,
     turns: state.turn, secs: Math.round((Date.now() - state.startedAt) / 1000), startLife: state.startLife, trail: state.trail.slice() };
   m.games.push(g.id);
   if (w === 'draw') m.draws += 1; else { m.wins[w] += 1; m.chooser = 1 - w; }
@@ -2920,6 +3177,11 @@ function highlights(g) {
 }
 const fmtDur = s => s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.floor(s / 60) % 60} min` : `${Math.max(1, Math.round(s / 60))} min`;
 function gameSummaryHtml(g, opts = {}) {
+  if (g.src === 'hand') {
+    const head = `Game ${g.n} · ${escapeHtml(g.players[g.winner])} wins`;
+    return `${opts.noTitle ? `<h4 style="margin:0">${head}</h4>` : `<h2 id="recap-title">${head}</h2>`}
+      <p class="hint">Played at another table in a tournament and entered by hand: ${g.lifeLeft} life left.</p>`;
+  }
   const h = highlights(g), n = g.players.map(escapeHtml);
   const head = g.winner === 'draw' ? `Game ${g.n} · Draw` : `Game ${g.n} · ${n[g.winner]} wins`;
   return `${opts.noTitle ? `<h4 style="margin:0">${head}</h4>` : `<h2 id="recap-title">${head}</h2>`}
@@ -2994,7 +3256,7 @@ function renderRecords() {
   const done = M.filter(x => x.over), multi = done.filter(x => x.bestOf > 1);
   const mw = nm => done.filter(x => winnerName(x) === nm).length;
   const gw = nm => G.filter(g => winnerName(g) === nm).length, gd = G.filter(g => g.winner === 'draw').length;
-  const side = (nm, play) => { const gs = G.filter(g => g.winner !== 'draw' && (g.players[g.first] === nm) === play && idx(g, nm) >= 0); return [gs.filter(g => winnerName(g) === nm).length, gs.length]; };
+  const side = (nm, play) => { const gs = G.filter(g => g.winner !== 'draw' && (g.first === 0 || g.first === 1) && (g.players[g.first] === nm) === play && idx(g, nm) >= 0); return [gs.filter(g => winnerName(g) === nm).length, gs.length]; };
   const [ap, apn] = side(A, true), [ad, adn] = side(A, false), [bp, bpn] = side(B, true), [bd, bdn] = side(B, false);
   const fmtRows = [...new Set(done.map(x => x.format))].map(f => { const xs = done.filter(x => x.format === f), gs = G.filter(g => g.format === f);
     return `<tr><td>${escapeHtml(FORMAT_NAME(f))}</td><td class="num">${xs.filter(x => winnerName(x) === A).length}–${xs.filter(x => winnerName(x) === B).length}</td><td class="num">${gs.filter(g => winnerName(g) === A).length}–${gs.filter(g => winnerName(g) === B).length}</td></tr>`; }).join('');
@@ -3173,10 +3435,19 @@ function tourStandings(t) {
 
 /* Setup */
 function newTourSetup() {
-  const known = knownNames();
+  // With a roster, players are picked from it (or typed in as guests); without one, the usual names are filled in
+  const known = roster.length ? [] : knownNames();
   const count = 5;
   tset = { count, names: Array.from({ length: 12 }, (_, i) => known[i] || ''), decks: new Set(kits.map(k => k.id)),
     format: 'constructed', life: 20, newDeck: false, err: '' };
+}
+// Tap a roster player to seat them in the first empty slot (adding a slot if all are full); tap again to remove them
+function toggleTourPlayer(pr) {
+  const n = tset.count, k = tset.names.slice(0, n).findIndex(x => x.trim().toLowerCase() === pr.name.toLowerCase());
+  if (k >= 0) { tset.names.splice(k, 1); tset.names.push(''); return; }
+  let free = tset.names.slice(0, n).findIndex(x => !x.trim());
+  if (free < 0 && n < 12) { tset.count = n + 1; free = n; }
+  if (free >= 0) tset.names[free] = pr.name;
 }
 function renderTourSetup(body) {
   const n = tset.count, D = tset.decks.size, need = tourMinDecks(n);
@@ -3190,6 +3461,9 @@ function renderTourSetup(body) {
       <button class="step" data-tcount="1" aria-label="More players">+</button>
       <span class="hint">${rounds} rounds · ${matches} matches · ${Math.floor(n / 2)} table${n > 3 ? 's' : ''}${n % 2 ? ' · one bye per round' : ''}</span>
     </div>
+    ${roster.length ? `<div class="toggles">${roster.map(pr => { const on = tset.names.slice(0, n).some(x => x.trim().toLowerCase() === pr.name.toLowerCase());
+      return `<button class="pchip" data-tpick="${pr.id}" aria-pressed="${on}">${avatarHtml(pr)}<span class="nm">${escapeHtml(pr.name)}</span></button>`; }).join('')}</div>
+      <p class="hint">Tap players to seat them. Type a name in an empty box for a guest.</p>` : ''}
     <div class="t-names">${Array.from({ length: n }, (_, i) => `<input id="tn-${i}" maxlength="18" autocomplete="off" placeholder="Player ${i + 1}" value="${escapeHtml(tset.names[i])}" aria-label="Player ${i + 1} name">`).join('')}</div>
     <div class="label">Decks in the pool (${D})</div>
     <div class="toggles">${kits.map(k => `<button class="tog chip-s" data-tdeck="${k.id}" aria-pressed="${tset.decks.has(k.id)}">${escapeHtml(k.name)}</button>`).join('')}
@@ -3216,6 +3490,7 @@ function startTour() {
   const f = FORMATS.find(x => x.id === tset.format) || FORMATS[0];
   const t = { id: uid(), started: Date.now(), format: f.id, life: f.life, players: names,
     decks: kits.filter(k => tset.decks.has(k.id)).map(k => ({ id: k.id, name: k.name })),
+    pids: names.map(x => (profileByName(x) || {}).id || null),
     rounds: roundRobin(n), round: 0, over: false };
   if (!dealDecks(t, 0)) { tset.err = "Couldn't deal the decks with these rules. Try again, or add a deck to the pool."; renderTour(); return; }
   t.rounds[0].dealt = true;
@@ -3310,12 +3585,31 @@ function playTourMatch(ti) {
   state = newState(state, tour.format, tour.life, first);
   state.match = newMatch(1, first);
   state.match.tour = { tid: tour.id, r: tour.round, t: ti };
-  state.players[0].name = tName(tb.a); state.players[1].name = tName(tb.b);
-  state.players[0].kit = tb.decks[0]; state.players[1].kit = tb.decks[1];
+  [tb.a, tb.b].forEach((p, k) => {
+    const pr = profileOf(tourPid(p)), seat = state.players[k];
+    seat.name = tName(p); seat.pid = pr ? pr.id : null; if (pr) seat.color = pr.color;
+    seat.kit = tb.decks[k];
+  });
   addLog({ p: first, text: `goes first · round ${tour.round + 1}, table ${ti + 1}` });
   panels.forEach((_, i) => { closeDrawer(i); closePicker(i); closeEditor(i); closeAnthem(i); closeArtPick(i); });
-  closeSheets(); commit();
+  closeSheets(); hideHome(); commit();
   announce(state.players[first].name, 'goes first');
+}
+const tourPid = p => (tour && tour.pids && tour.pids[p]) || null;
+// A result entered by hand (a game played at the other table) also goes into the history, so it counts in the
+// players' stats. Clearing the result takes it back out.
+function tourHandRecord(tb) {
+  const date = new Date().toISOString(), gid = uid(), mid = uid(), w = tb.result.winner;
+  const base = { date, format: tour.format, players: [tName(tb.a), tName(tb.b)], pids: [tourPid(tb.a), tourPid(tb.b)],
+    decks: [tb.decks[0] ? tDeck(tb.decks[0]) : '', tb.decks[1] ? tDeck(tb.decks[1]) : ''], winner: w, tour: tour.id, src: 'hand' };
+  hist.games.push({ ...base, id: gid, matchId: mid, n: 1, first: null, turns: null, secs: null, startLife: tour.life, trail: [], lifeLeft: tb.result.life });
+  hist.matches.push({ ...base, id: mid, bestOf: 1, wins: w === 0 ? [1, 0] : [0, 1], draws: 0, over: true, games: [gid] });
+  tb.result.matchId = mid; saveHist();
+}
+function dropHandRecord(tb) {
+  if (!tb.result || tb.result.src !== 'hand' || !tb.result.matchId) return;
+  const mid = tb.result.matchId;
+  hist.matches = hist.matches.filter(x => x.id !== mid); hist.games = hist.games.filter(g => g.matchId !== mid); saveHist();
 }
 // Called after every recorded game: a finished tournament match on this device fills in its table
 function tourReport(m) {
@@ -3336,7 +3630,7 @@ function tourReconcile() {
 function finishTour() {
   tour.over = true;
   const st = tourStandings(tour);
-  pastTours.push({ id: tour.id, date: new Date(tour.started).toISOString(), players: tour.players.slice(), champion: st[0].name,
+  pastTours.push({ id: tour.id, date: new Date(tour.started).toISOString(), players: tour.players.slice(), champion: st[0].name, championPid: tourPid(st[0].i),
     standings: st.map(x => ({ name: x.name, w: x.w, l: x.l, life: x.life, why: x.why })) });
   savePastTours(); saveTour();
 }
@@ -3354,6 +3648,7 @@ document.getElementById('sheet-tour').addEventListener('click', e => {
   tui.msg = '';
   if (d.ttab) tui.tab = d.ttab;
   else if (d.tcount) { tset.count = Math.min(12, Math.max(3, tset.count + Number(d.tcount))); tset.err = ''; }
+  else if (d.tpick) { const pr = profileOf(d.tpick); if (pr) toggleTourPlayer(pr); tset.err = ''; }
   else if (d.tdeck) { tset.decks.has(d.tdeck) ? tset.decks.delete(d.tdeck) : tset.decks.add(d.tdeck); }
   else if ('tnewdeck' in d) tset.newDeck = true;
   else if ('tsavedeck' in d) {
@@ -3370,10 +3665,12 @@ document.getElementById('sheet-tour').addEventListener('click', e => {
   else if (d.tsave) {
     const life = parseInt(tui.life, 10);
     if (!(life >= 0)) { tui.msg = "Enter the winner's life left (0 or more)."; renderTour(); return; }
-    tour.rounds[tour.round].tables[Number(d.tsave)].result = { winner: tui.win, life, src: 'hand', at: Date.now() };
+    const tb = tour.rounds[tour.round].tables[Number(d.tsave)];
+    tb.result = { winner: tui.win, life, src: 'hand', at: Date.now() };
+    tourHandRecord(tb);
     tui.entry = null; saveTour();
   }
-  else if (d.tclear) { tour.rounds[tour.round].tables[Number(d.tclear)].result = null; saveTour(); }
+  else if (d.tclear) { const tb = tour.rounds[tour.round].tables[Number(d.tclear)]; dropHandRecord(tb); tb.result = null; saveTour(); }
   else if ('tredeal' in d) {
     if (!dealDecks(tour, tour.round)) tui.msg = "Couldn't re-deal with these rules."; else saveTour();
   }
@@ -3392,8 +3689,257 @@ document.getElementById('sheet-tour').addEventListener('click', e => {
   if ('tnewdeck' in d) { const inp = document.getElementById('tn-deck'); if (inp) inp.focus(); }
 });
 
+/* Player stats (pure: takes the history, touches nothing else) */
+// Is seat k of a game or match this player? By profile id when the record has one, else by name or an old name.
+function isSeat(pr, rec, k) {
+  const pid = rec.pids && rec.pids[k];
+  if (pid) return pid === pr.id;
+  const n = String(rec.players[k] || '').trim().toLowerCase();
+  return !!n && (n === pr.name.toLowerCase() || (pr.aliases || []).some(a => a.toLowerCase() === n));
+}
+const seatOf = (pr, rec) => (isSeat(pr, rec, 0) ? 0 : isSeat(pr, rec, 1) ? 1 : -1);
+// The winner's life when the game ended: typed in for hand-entered games, else the last point of the life graph
+function lifeLeftOf(g) {
+  if (g.winner !== 0 && g.winner !== 1) return null;
+  if (g.lifeLeft !== undefined && g.lifeLeft !== null) return Math.max(0, Number(g.lifeLeft) || 0);
+  const t = g.trail && g.trail[g.trail.length - 1];
+  return t ? Math.max(0, t[2 + g.winner]) : null;
+}
+// `who(name, pid)` names an opponent ({ key, label }) so old games (by name) and new ones (by profile) land in one row
+function playerStats(pr, games, matches, tours, who) {
+  const opp = who || ((name, pid) => ({ key: pid || 'name:' + String(name).toLowerCase(), label: name }));
+  const tally = () => ({ w: 0, l: 0, d: 0 });
+  const st = { games: tally(), matches: tally(), play: tally(), draw: tally(), tourGames: tally(),
+    formats: new Map(), decks: new Map(), opps: new Map(), lifeInWins: 0, winsWithLife: 0, recent: [], titles: 0 };
+  const bump = (map, key, r, label) => { if (!map.has(key)) map.set(key, { key, label: label || key, ...tally() }); const x = map.get(key); x[r]++; if (label) x.label = label; };
+  const mine = games.filter(g => seatOf(pr, g) >= 0).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  mine.forEach(g => {
+    const k = seatOf(pr, g), o = 1 - k;
+    const r = g.winner === 'draw' ? 'd' : g.winner === k ? 'w' : 'l';
+    st.games[r]++;
+    if (g.first === 0 || g.first === 1) st[g.first === k ? 'play' : 'draw'][r]++;
+    if (g.tour) st.tourGames[r]++;
+    bump(st.formats, g.format, r);
+    bump(st.decks, (g.decks && g.decks[k]) || 'No deck', r);
+    const ow = opp(g.players[o], g.pids && g.pids[o]);
+    bump(st.opps, ow.key, r, ow.label);
+    if (r === 'w') { const l = lifeLeftOf(g); if (l !== null) { st.lifeInWins += l; st.winsWithLife++; } }
+  });
+  st.recent = mine.slice(-10).reverse().map(g => {
+    const k = seatOf(pr, g);
+    return { date: g.date, opp: g.players[1 - k], result: g.winner === 'draw' ? 'd' : g.winner === k ? 'w' : 'l',
+      deck: (g.decks && g.decks[k]) || '', format: g.format, tour: !!g.tour };
+  });
+  matches.filter(m => m.over).forEach(m => {
+    const k = seatOf(pr, m); if (k < 0) return;
+    st.matches[m.winner === 'draw' ? 'd' : m.winner === k ? 'w' : 'l']++;
+  });
+  const names = [pr.name, ...(pr.aliases || [])].map(n => n.toLowerCase());
+  st.titles = tours.filter(t => (t.championPid ? t.championPid === pr.id : names.includes(String(t.champion).toLowerCase()))).length;
+  const rows = map => [...map.values()].map(x => ({ ...x, n: x.w + x.l + x.d })).sort((a, b) => b.n - a.n || b.w - a.w);
+  st.formats = rows(st.formats); st.decks = rows(st.decks); st.opps = rows(st.opps);
+  return st;
+}
+/* End player stats */
+
+/* ---------- Home ---------- */
+const homeEl = document.getElementById('home');
+function gameInProgress() {
+  if (!state) return false;
+  if (state.over) return !state.match.over;
+  return state.turn > 1 || state.trail.length > 1 || state.log.length > 0 || state.match.games.length > 0;
+}
+function showHome() { closeSheets(); renderHome(); homeEl.hidden = false; homeEl.scrollTop = 0; }
+function hideHome() { homeEl.hidden = true; }
+function renderHome() {
+  const live = gameInProgress(), [a, b] = state.players;
+  document.getElementById('home-sub').textContent = live ? 'Pick up where you left off, or start something new.' : 'Start a game, run a tournament or look back at past games.';
+  const t = [];
+  if (live) t.push(`<button class="htile primary wide" data-home="continue"><b>Continue game</b>
+    <span>${escapeHtml(a.name)} vs ${escapeHtml(b.name)} · ${state.over ? `game ${state.match.games.length + 1} next` : `turn ${state.turn} · ${a.life} to ${b.life}`}</span></button>`);
+  t.push(`<button class="htile${live ? '' : ' primary'}" data-home="new"><b>New game</b><span>Pick two players, a format and decks</span></button>`);
+  t.push(`<button class="htile" data-home="tour"><b>Tournament</b><span>${tour ? (tour.over ? 'Finished · see the champion' : `Round ${tour.round + 1} of ${tour.rounds.length} in progress`) : 'Round robin for 3–12 players'}</span></button>`);
+  t.push(`<button class="htile" data-home="stats"><b>Stats</b><span>${hist.games.length} game${hist.games.length === 1 ? '' : 's'} recorded</span></button>`);
+  t.push(`<button class="htile" data-home="players"><b>Players</b><span>${roster.length ? escapeHtml(roster.slice(0, 4).map(p => p.name).join(', ') + (roster.length > 4 ? ` +${roster.length - 4}` : '')) : 'Add the people you play with'}</span></button>`);
+  document.getElementById('home-grid').innerHTML = t.join('');
+  document.getElementById('home-faces').innerHTML = roster.map(pr => `<button class="pchip" data-home="stats" data-pid="${pr.id}" aria-label="${escapeHtml(pr.name)}'s stats">${avatarHtml(pr)}<span class="nm">${escapeHtml(pr.name)}</span></button>`).join('');
+}
+homeEl.addEventListener('click', e => {
+  const b = e.target.closest('[data-home]'); if (!b) return;
+  const h = b.dataset.home;
+  if (h === 'continue') { hideHome(); if (state.over && !state.match.over) openRecap(); }
+  else if (h === 'new') openNewSheet();
+  else if (h === 'tour') document.getElementById('btn-tour').click();
+  else if (h === 'stats') openStats(b.dataset.pid);
+  else if (h === 'players') openPlayers();
+  else if (h === 'rules') document.getElementById('btn-rules').click();
+  else if (h === 'matches' || h === 'backup') { openSheet('sheet-log'); switchHistTab(h); }
+});
+document.getElementById('btn-home').addEventListener('click', showHome);
+
+/* ---------- Players screen ---------- */
+const plui = { edit: null, msg: '', arts: [], artMsg: '', del: false };
+const deckName = id => { const k = kits.find(x => x.id === id); return k ? k.name : ''; };
+function openPlayers(pid) {
+  Object.assign(plui, { edit: pid || null, msg: '', arts: [], artMsg: '', del: false });
+  renderPlayers(); openSheet('sheet-players');
+}
+function renderPlayers() {
+  const body = document.getElementById('players-body');
+  document.getElementById('players-sub').textContent = `${roster.length} player${roster.length === 1 ? '' : 's'}`;
+  const pr = profileOf(plui.edit);
+  if (pr) { renderPlayerEdit(body, pr); return; }
+  plui.edit = null;
+  const sugg = profileSuggestions();
+  body.innerHTML = `<div class="dform" style="max-width:none">
+    ${roster.length ? '' : '<p class="hint">Make a profile for each person who plays regularly. Each keeps their color, background, favorite decks and stats, and their past games count straight away.</p>'}
+    ${sugg.length ? `<div class="lbl">${roster.length ? 'Add from past games' : 'Quick add'}</div>
+      <div class="toggles">${sugg.map(n => `<button class="tog" data-padd="${escapeHtml(n)}">+ ${escapeHtml(n)}</button>`).join('')}</div>` : ''}
+    <div class="t-life"><input id="pl-new" type="text" maxlength="18" autocomplete="off" placeholder="New player's name" aria-label="New player's name"
+      style="width:220px;text-align:left;font-family:var(--f-ui);font-size:16px"><button class="tog" data-pnew>Add player</button></div>
+    ${plui.msg ? `<p class="t-err">${escapeHtml(plui.msg)}</p>` : ''}
+    <div>${roster.map(p => {
+      const g = playerStats(p, hist.games, hist.matches, pastTours).games, n = g.w + g.l + g.d;
+      return `<div class="prow">${avatarHtml(p)}<div class="pinfo"><strong>${escapeHtml(p.name)}</strong>
+        <small>${n ? `${g.w}–${g.l}${g.d ? `–${g.d}` : ''} in ${n} game${n === 1 ? '' : 's'}` : 'No games yet'}${p.deck && deckName(p.deck) ? ` · plays ${escapeHtml(deckName(p.deck))}` : ''}</small></div>
+        <button class="tog" data-pstats="${p.id}">Stats</button><button class="tog" data-pedit="${p.id}">Edit</button></div>`;
+    }).join('')}</div></div>`;
+}
+function renderPlayerEdit(body, pr) {
+  const bg = profileBg(pr);
+  body.innerHTML = `<div class="dform pedit" style="max-width:none">
+    <div class="rbar"><button class="tog" data-pback>All players</button></div>
+    <div class="phead">${avatarHtml(pr, 'lg')}<input type="text" id="pl-name" maxlength="18" autocomplete="off" value="${escapeHtml(pr.name)}" aria-label="Name"></div>
+    ${pr.aliases.length ? `<p class="hint">Past games under ${pr.aliases.map(escapeHtml).join(', ')} count for ${escapeHtml(pr.name)}.</p>` : ''}
+    ${plui.msg ? `<p class="t-err">${escapeHtml(plui.msg)}</p>` : ''}
+    <div class="lbl">Color</div>
+    <div class="swatches">${Object.keys(COLORS).map(c => `<button class="sw" data-pcolor="${c}" style="--c:${COLORS[c]}" aria-label="${COLOR_NAMES[c]}" aria-pressed="${pr.color === c}"></button>`).join('')}</div>
+    <div class="lbl">Background</div>
+    <div class="toggles"><label class="tog" for="pl-photo">Choose photo</label><input class="file" type="file" id="pl-photo" accept="image/*">
+      ${bg ? '<button class="tog" data-pbgclear>Remove background</button>' : ''}</div>
+    ${bg && bg.credit ? `<p class="hint">Art: ${escapeHtml(bg.credit)} · Scryfall</p>` : ''}
+    <div class="t-life"><input type="text" id="pl-artq" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search" placeholder="Or card art: a card name"
+      aria-label="Find card art by card name" style="width:260px;text-align:left;font-family:var(--f-ui);font-size:16px"><button class="tog" data-partsearch>Find art</button></div>
+    ${plui.artMsg ? `<p class="hint">${escapeHtml(plui.artMsg)}</p>` : ''}
+    ${plui.arts.length ? `<div class="arts">${plui.arts.map((a, n) => `<button class="artopt" data-partpick="${n}" aria-pressed="${!!(pr.art && pr.art.url === a.url)}">
+      <img src="${escapeHtml(a.url)}" alt="${escapeHtml(a.name)} art" loading="lazy"><span><b>${escapeHtml(a.name)}</b>${escapeHtml(a.set)}${a.artist ? ` · ${escapeHtml(a.artist)}` : ''}</span></button>`).join('')}</div>` : ''}
+    <div class="lbl">Favorite decks</div>
+    ${kits.length ? `<div class="toggles">${kits.map(k => `<button class="tog chip-s" data-pfav="${k.id}" aria-pressed="${pr.decks.includes(k.id)}">${escapeHtml(k.name)}</button>`).join('')}</div>
+      <div class="lbl">Default deck</div><p class="hint">Picked for ${escapeHtml(pr.name)} when a game starts. Favorites show first in the deck list.</p>
+      <div class="toggles"><button class="tog chip-s" data-pdeck="" aria-pressed="${!pr.deck}">None</button>${kits.map(k => `<button class="tog chip-s" data-pdeck="${k.id}" aria-pressed="${pr.deck === k.id}">${escapeHtml(k.name)}</button>`).join('')}</div>`
+      : '<p class="hint">No decks saved yet. Add decks in New game or Tournament, then pick favorites here.</p>'}
+    <div class="toggles"><button class="tog" data-pstats="${pr.id}">See stats</button><button class="tog danger" data-pdel>${plui.del ? 'Tap again to delete' : 'Delete player'}</button></div>
+    <p class="hint">Deleting a player removes the profile only. Their games stay in History.</p></div>`;
+}
+async function findProfileArt(q) {
+  if (!q) return;
+  plui.arts = []; plui.artMsg = `Finding art for “${q}”…`; renderPlayers();
+  try {
+    const arts = (await searchArts(q)).slice(0, 60);
+    plui.arts = arts; plui.artMsg = arts.length ? `${arts.length} artwork${arts.length === 1 ? '' : 's'}. Tap one to use it.` : `Nothing on Scryfall matches “${q}”.`;
+  } catch (e) { plui.artMsg = offlineMsg; }
+  if (plui.edit) renderPlayers();
+}
+const playersEl = document.getElementById('sheet-players');
+playersEl.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset, pr = profileOf(plui.edit);
+  if (!('pdel' in d)) plui.del = false;
+  if (!('pnew' in d) && !('padd' in d)) plui.msg = '';
+  if (d.padd) { addProfile(d.padd); syncSeats(); }
+  else if ('pnew' in d) {
+    const inp = document.getElementById('pl-new'), name = inp.value.trim();
+    if (!name) { inp.focus(); return; }
+    if (profileByName(name)) plui.msg = `${name} is already a player.`; else { addProfile(name); syncSeats(); plui.msg = ''; }
+  }
+  else if (d.pedit) Object.assign(plui, { edit: d.pedit, arts: [], artMsg: '' });
+  else if ('pback' in d) plui.edit = null;
+  else if (d.pstats) { openStats(d.pstats); return; }
+  else if (!pr) return;
+  else if (d.pcolor) { pr.color = d.pcolor; saveRoster(); syncSeats(); }
+  else if ('pbgclear' in d) { clearProfileBg(pr); renderBgs(); }
+  else if ('partsearch' in d) { findProfileArt(document.getElementById('pl-artq').value.trim()); return; }
+  else if (d.partpick) { const a = plui.arts[Number(d.partpick)]; if (a) { setProfileArt(pr, { url: a.url, credit: a.artist }); renderBgs(); } }
+  else if (d.pfav) { pr.decks = pr.decks.includes(d.pfav) ? pr.decks.filter(x => x !== d.pfav) : [...pr.decks, d.pfav]; saveRoster(); }
+  else if (d.pdeck !== undefined) { pr.deck = d.pdeck || null; if (pr.deck && !pr.decks.includes(pr.deck)) pr.decks.push(pr.deck); saveRoster(); }
+  else if ('pdel' in d) {
+    if (!plui.del) plui.del = true;
+    else { clearProfileBg(pr); roster = roster.filter(x => x !== pr); saveRoster(); plui.edit = null; plui.del = false; syncSeats(); }
+  }
+  else return;
+  renderPlayers();
+});
+playersEl.addEventListener('change', async e => {
+  const pr = profileOf(plui.edit);
+  if (e.target.id === 'pl-photo' && pr && e.target.files && e.target.files[0]) {
+    const file = e.target.files[0]; e.target.value = '';
+    try { plui.msg = (await setProfilePhoto(pr, await shrink(file, 1400, .8))) ? '' : 'Photo shown, but the iPad had no room to save it.'; }
+    catch (err) { plui.msg = 'That file could not be opened as an image. Try a JPEG or PNG.'; }
+    renderBgs(); renderPlayers();
+  } else if (e.target.id === 'pl-name' && pr) {
+    plui.msg = renameProfile(pr, e.target.value) ? '' : 'Another player already has that name.';
+    renderPlayers();
+  }
+});
+playersEl.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (e.target.id === 'pl-new') { e.preventDefault(); playersEl.querySelector('[data-pnew]').click(); }
+  else if (e.target.id === 'pl-artq') { e.preventDefault(); e.target.blur(); findProfileArt(e.target.value.trim()); }
+  else if (e.target.id === 'pl-name') e.target.blur();
+});
+
+/* ---------- Stats screen ---------- */
+const sui = { pid: null, range: 'all' };
+function openStats(pid) {
+  if (pid) sui.pid = pid;
+  closeSheets(); renderStats(); openSheet('sheet-stats');
+  document.getElementById('stats-body').scrollTop = 0;
+}
+function renderStats() {
+  const body = document.getElementById('stats-body');
+  document.getElementById('stats-sub').textContent = `${hist.games.length} game${hist.games.length === 1 ? '' : 's'} recorded`;
+  const links = `<div class="toggles"><button class="tog" data-sgo="h2h">Head-to-head records</button><button class="tog" data-sgo="matches">All matches</button><button class="tog" data-sgo="players">Players</button></div>`;
+  if (!roster.length) {
+    body.innerHTML = `<div class="dform"><p class="hint">Stats are kept for each player. Add the people you play with in Players, and their past games count straight away.</p>${links}</div>`;
+    return;
+  }
+  const pr = profileOf(sui.pid) || roster[0]; sui.pid = pr.id;
+  const now = new Date();
+  const inR = x => sui.range === 'all' || (sui.range === 'year' ? new Date(x.date).getFullYear() === now.getFullYear() : now - Date.parse(x.date) <= 30 * 864e5);
+  const st = playerStats(pr, hist.games.filter(inR), hist.matches.filter(inR), pastTours.filter(inR), whoIs);
+  const n = t => t.w + t.l + t.d, rec = t => `${t.w}–${t.l}${t.d ? `–${t.d}` : ''}`;
+  const table = (title, head, rows, label) => rows.length ? `<div class="lbl">${title}</div><div class="tablewrap"><table class="rtable"><tr><th>${head}</th><th>Games</th><th>W–L</th><th>Win %</th></tr>
+    ${rows.map(r => `<tr><td>${escapeHtml(label(r))}</td><td class="num">${r.n}</td><td class="num">${rec(r)}</td><td class="num">${pct(r.w, r.n)}</td></tr>`).join('')}</table></div>` : '';
+  const pick = `<div class="toggles">${roster.map(p => `<button class="pchip" data-spid="${p.id}" aria-pressed="${p === pr}">${avatarHtml(p)}<span class="nm">${escapeHtml(p.name)}</span></button>`).join('')}</div>
+    <div class="toggles">${[['all', 'All time'], ['year', 'This year'], ['30', 'Last 30 days']].map(([v, t]) => `<button class="tog chip-s" data-srange="${v}" aria-pressed="${sui.range === v}">${t}</button>`).join('')}</div>`;
+  if (!n(st.games)) { body.innerHTML = `<div class="dform" style="max-width:none">${pick}<p class="hint">No games for ${escapeHtml(pr.name)}${sui.range === 'all' ? ' yet' : ' in this time'}. Record a game's winner and it shows up here.</p>${links}</div>`; return; }
+  body.innerHTML = `<div class="dform" style="max-width:none">${pick}
+    <div class="tiles">
+      <div class="tile"><span>Games</span><b>${rec(st.games)}</b><small>${pct(st.games.w, n(st.games))} won · ${n(st.games)} played</small></div>
+      <div class="tile"><span>Matches</span><b>${rec(st.matches)}</b><small>${n(st.matches)} finished</small></div>
+      <div class="tile"><span>On the play</span><b>${pct(st.play.w, n(st.play))}</b><small>${st.play.w} of ${n(st.play)} · on the draw ${pct(st.draw.w, n(st.draw))} (${st.draw.w} of ${n(st.draw)})</small></div>
+      <div class="tile"><span>Life left in wins</span><b>${st.winsWithLife ? Math.round(st.lifeInWins / st.winsWithLife) : '–'}</b><small>average over ${st.winsWithLife} win${st.winsWithLife === 1 ? '' : 's'}</small></div>
+      <div class="tile"><span>Tournaments</span><b>${st.titles}</b><small>${st.titles === 1 ? 'title' : 'titles'} · ${rec(st.tourGames)} in tournament games</small></div>
+    </div>
+    ${table('Against', 'Opponent', st.opps, r => r.label)}
+    ${table('By deck', 'Deck', st.decks, r => r.label)}
+    ${table('By format', 'Format', st.formats, r => FORMAT_NAME(r.label))}
+    <div class="lbl">Last ${st.recent.length} game${st.recent.length === 1 ? '' : 's'}</div>
+    <div class="rlist">${st.recent.map(g => `<div class="rres"><span class="${g.result === 'w' ? 'wl-w' : g.result === 'l' ? 'wl-l' : ''}">${g.result === 'w' ? 'Won' : g.result === 'l' ? 'Lost' : 'Drew'}</span>
+      vs ${escapeHtml(g.opp)}${g.deck ? ` · ${escapeHtml(g.deck)}` : ''}<small>${escapeHtml(new Date(g.date).toLocaleDateString())} · ${escapeHtml(FORMAT_NAME(g.format))}${g.tour ? ' · tournament' : ''}</small></div>`).join('')}</div>
+    ${links}</div>`;
+}
+document.getElementById('sheet-stats').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset;
+  if (d.spid) { sui.pid = d.spid; renderStats(); }
+  else if (d.srange) { sui.range = d.srange; renderStats(); }
+  else if (d.sgo === 'players') openPlayers(sui.pid);
+  else if (d.sgo) { closeSheets(); openSheet('sheet-log'); switchHistTab(d.sgo === 'h2h' ? 'records' : 'matches'); }
+});
+
 /* Backup and restore */
-const BACKUP_KEYS = { history: HIST_KEY, decks: KITS_KEY, myTokens: MINE_KEY, house: HOUSE_KEY, rulesPrefs: NAV_KEY, cards: CARDS_KEY, tournament: TOUR_KEY, tournaments: TOURS_KEY };
+const BACKUP_KEYS = { history: HIST_KEY, decks: KITS_KEY, myTokens: MINE_KEY, house: HOUSE_KEY, rulesPrefs: NAV_KEY, cards: CARDS_KEY, tournament: TOUR_KEY, tournaments: TOURS_KEY, players: PLAYERS_KEY };
 function renderBackup() {
   const body = document.getElementById('b-body'), pend = hui.backup;
   body.innerHTML = `<div class="dform">
@@ -3402,14 +3948,18 @@ function renderBackup() {
     <div class="toggles"><button class="tog" data-bkexport>Back up now</button>
       <label class="tog" for="bk-file">Restore from a backup…</label><input class="file" type="file" id="bk-file" accept="application/json,.json"></div>
     ${pend ? `<div class="hr"><h4>Backup from ${escapeHtml(new Date(pend.exported).toLocaleString())}</h4>
-      <small>${((pend.data.history || {}).matches || []).length} matches · ${((pend.data.history || {}).games || []).length} games · ${(pend.data.decks || []).length} decks · ${(pend.data.myTokens || []).length} saved tokens · ${((pend.data.house || {}).rulings || []).length} rulings${(pend.data.tournaments || []).length ? ` · ${pend.data.tournaments.length} past tournaments` : ''}${pend.data.tournament ? ' · tournament in progress' : ''}${pend.data.photos ? ' · photos' : ''}</small>
+      <small>${((pend.data.history || {}).matches || []).length} matches · ${((pend.data.history || {}).games || []).length} games · ${(pend.data.decks || []).length} decks · ${(pend.data.myTokens || []).length} saved tokens · ${((pend.data.house || {}).rulings || []).length} rulings${(pend.data.players || []).length ? ` · ${pend.data.players.length} players` : ''}${(pend.data.tournaments || []).length ? ` · ${pend.data.tournaments.length} past tournaments` : ''}${pend.data.tournament ? ' · tournament in progress' : ''}${pend.data.photos ? ' · photos' : ''}</small>
       <div class="toggles"><button class="tog" data-bkmerge>Merge with this iPad</button><button class="tog danger" data-bkreplace>Replace this iPad's data</button><button class="tog" data-bkcancel>Cancel</button></div></div>` : ''}
     <p class="hint" id="bk-msg"></p></div>`;
 }
 async function exportBackup() {
   const data = {};
   Object.entries(BACKUP_KEYS).forEach(([k, key]) => { data[k] = loadJSON(key, null); });
-  if (hui.photos) data.photos = bgs;
+  if (hui.photos) {
+    data.photos = bgs;
+    data.playerPhotos = {};
+    for (const pr of roster.filter(p => p.photo)) { const ph = await loadPhoto(pr.id); if (ph) data.playerPhotos[pr.id] = ph; }
+  }
   // Player setup and the best-of default, so moving to a new web address loses nothing
   data.seats = state.players.map(p => ({ name: p.name, color: p.color, kit: p.kit || null }));
   try { data.bestOf = Number(localStorage.getItem(BO_KEY)) || null; } catch (e) { /* optional */ }
@@ -3451,6 +4001,7 @@ function applyBackup(replace) {
     if (d.bestOf) { try { localStorage.setItem(BO_KEY, String(d.bestOf)); } catch (e) { /* optional */ } }
     if (d.tournament !== undefined) tour = d.tournament;
     if (d.tournaments) pastTours = d.tournaments;
+    if (Array.isArray(d.players)) roster = d.players;
   } else {
     if (d.history) {
       hist.games = byId(hist.games, d.history.games);
@@ -3465,9 +4016,18 @@ function applyBackup(replace) {
     if (d.cards) { const names = new Set(cardCache.map(c => c.name)); d.cards.forEach(c => { if (!names.has(c.name)) cardCache.push(c); }); }
     if (d.tournament && !tour) tour = d.tournament;
     if (d.tournaments) pastTours = byId(pastTours, d.tournaments);
+    if (Array.isArray(d.players)) roster = byId(roster, d.players.filter(p => !profileByName(p.name)));
     if (d.photos) [0, 1].forEach(i => { if (!bgs[i] && d.photos[i]) { bgs[i] = d.photos[i]; if (d.photos['credit' + i]) bgs['credit' + i] = d.photos['credit' + i]; } });
   }
   saveHist(); saveKits(); saveMine(); saveJSON(HOUSE_KEY, house); saveJSON(NAV_KEY, rprefs); saveJSON(CARDS_KEY, cardCache); saveJSON(TOUR_KEY, tour); savePastTours();
+  roster.forEach(p => { if (!Array.isArray(p.aliases)) p.aliases = []; if (!Array.isArray(p.decks)) p.decks = []; });
+  saveRoster();
+  // Player photos go back into IndexedDB; a merge keeps a photo this iPad already has
+  Object.entries(d.playerPhotos || {}).forEach(([id, data]) => {
+    const pr = profileOf(id);
+    if (pr && pr.photo && typeof data === 'string' && (replace || !photoCache[id])) { photoCache[id] = data; idbPhotos('readwrite', st => st.put(data, id)).catch(() => {}); }
+  });
+  syncSeats();
   if (d.photos) saveBgs();
   renderBg(0); renderBg(1); render();
   hui.backup = null; renderBackup();
@@ -3558,6 +4118,11 @@ function start(hot) {
   setInterval(renderClock, 1000);
   window.addEventListener('resize', () => { layoutHalf(0); layoutHalf(1); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { layoutHalf(0); layoutHalf(1); });
+  // Profile photos load from IndexedDB in the background; seats and avatars fill in when they arrive
+  Promise.all(roster.filter(p => p.photo).map(p => loadPhoto(p.id))).then(() => { renderBgs(); if (!homeEl.hidden) renderHome(); });
+  syncSeats();
+  // Every visit starts on Home (Continue picks the game back up)
+  showHome();
 }
 window.claude?.hot?.snapshot?.(() => ({ state, undo: undoStack }));
 if (window.claude?.hot?.ready) window.claude.hot.ready(start);
