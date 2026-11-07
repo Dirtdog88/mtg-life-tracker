@@ -89,7 +89,7 @@ const why = (t, name) => T.tourStandings(t).find(x => x.name === name).why;
   ok(order(t) === 'A B C D E', `head-to-head: got ${order(t)}`);
   ok(why(t, 'A') === 'head-to-head', `head-to-head reason: ${why(t, 'A')}`);
 }
-// Three tied: record against everyone else decides, as the spec says
+// Three tied: wins against the others in the tie decide (mini-league), not record against everyone else
 {
   const t = ev(['A', 'B', 'C', 'D', 'E', 'F'], [
     [0, 1, 1], [0, 2, 1], [1, 2, 1],            // inside the tie: A 2–0, B 1–1, C 0–2
@@ -97,8 +97,14 @@ const why = (t, name) => T.tourStandings(t).find(x => x.name === name).why;
     [1, 3, 1], [1, 4, 1], [5, 1, 1],             // B 2 wins vs the field
     [2, 3, 1], [2, 4, 1], [2, 5, 1],             // C 3 wins vs the field
     [3, 4, 1], [4, 5, 1], [3, 5, 1]]);
-  ok(order(t) === 'C B A F E D', `record vs field: got ${order(t)}`);
-  ok(why(t, 'C') === 'record vs field', `record vs field reason: ${why(t, 'C')}`);
+  ok(order(t) === 'A B C D E F', `mini-league: got ${order(t)}`);
+  ok(why(t, 'A') === 'mini-league', `mini-league reason: ${why(t, 'A')}`);
+}
+// Two pairs tied on wins: each pair goes to head-to-head
+{
+  const t = ev(['A', 'B', 'C', 'D'], [[0, 1, 1], [0, 2, 1], [3, 0, 1], [1, 2, 1], [1, 3, 1], [2, 3, 1]]);
+  // A 2 (beat B, C), B 2 (beat C, D), C 1, D 1: two groups of two; A beat B, C beat D
+  ok(order(t) === 'A B C D', `split then head-to-head: got ${order(t)}`);
 }
 // Three tied in a cycle (same record vs everyone else): total life left in wins
 {

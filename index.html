@@ -3118,8 +3118,9 @@ function dealDecks(t, from) {
 const tDeck = id => { const d = tour && tour.decks.find(x => x.id === id); return d ? d.name : '?'; };
 const tName = i => tour.players[i];
 
-// Standings: most wins, then tiebreaks. Two tied: head-to-head. Three or more: record against the players outside
-// the tie. Then total life left in games won. Then a coin flip (fixed per event, so the order never jumps around).
+// Standings: most wins, then tiebreaks. Two tied: head-to-head. Three or more: a mini-league, wins against the others in
+// the tie (record against everyone else adds nothing after that: equal wins and equal wins inside the tie mean equal
+// wins outside it). Then total life left in games won. Then a coin flip (fixed per event, so the order never jumps around).
 function tourStats(t) {
   const st = t.players.map((name, i) => ({ i, name, w: 0, l: 0, life: 0, played: 0, why: '' }));
   t.rounds.forEach(r => r.tables.forEach(tb => {
@@ -3153,7 +3154,7 @@ function breakTie(t, group) {
   if (group.length < 2) return group;
   const steps = group.length === 2
     ? [['head-to-head', x => beat(t, x.i, group.find(y => y !== x).i)], ['life left', x => x.life], ['coin flip', x => coinOf(t, x.name)]]
-    : [['record vs field', x => { const ids = new Set(group.map(y => y.i)); return t.players.reduce((n, _, j) => n + (ids.has(j) ? 0 : beat(t, x.i, j)), 0); }],
+    : [['mini-league', x => group.reduce((n, y) => n + (y === x ? 0 : beat(t, x.i, y.i)), 0)],
        ['life left', x => x.life], ['coin flip', x => coinOf(t, x.name)]];
   for (const [why, key] of steps) {
     const parts = splitBy(group, key);
@@ -3267,7 +3268,7 @@ function standingsTable(st) {
 function renderTourStandings(body) {
   const left = tour.rounds.reduce((n, r) => n + r.tables.filter(tb => !tb.result).length, 0);
   body.innerHTML = `${standingsTable(tourStandings(tour))}
-    <p class="hint">Most wins first. Tiebreaks: two tied, head-to-head; three or more, record against everyone else; then total life left in games won; then a coin flip. ${left ? `${left} match${left === 1 ? '' : 'es'} left.` : 'All matches played.'}</p>`;
+    <p class="hint">Most wins first. Tiebreaks: two tied, head-to-head; three or more, wins against the others in the tie; then total life left in games won; then a coin flip. ${left ? `${left} match${left === 1 ? '' : 'es'} left.` : 'All matches played.'}</p>`;
 }
 function renderTourSchedule(body) {
   body.innerHTML = tour.rounds.map((r, ri) => `<h3 class="sub-h">Round ${ri + 1}${ri === tour.round && !tour.over ? ' · now' : ''}</h3>
