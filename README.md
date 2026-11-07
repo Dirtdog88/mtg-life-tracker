@@ -12,7 +12,17 @@ A two-player Magic: The Gathering life tracker built for an iPad sitting beside 
 
 ## What it tracks
 
-- Tournaments (the **Event** button): a round robin for 3–12 players, single games. Every player meets everyone
+- **Home** opens first: Continue game (when one is in progress), New game, Tournament, Stats and Players, plus Rules,
+  All matches and Backup. The **Home** button on the table strip comes back to it.
+- **Players**: a profile for each regular, with their color, background (a photo or Scryfall card art), favorite decks
+  and default deck. Pick players in New game or Tournament and their settings come along; a color or background
+  changed at the table saves to the player. Names from past games can be turned into profiles with one tap, and
+  those games count straight away (stats follow the profile, so a rename keeps them). Profiles are kept on this
+  device; photos live in IndexedDB. Type a name instead of picking a player for a guest.
+- **Stats** for each player: games and matches won, on the play vs. on the draw, average life left in wins,
+  tournament titles, records against each opponent, by deck and by format, and their last 10 games. Tournament
+  results entered by hand (games played at another table) count too.
+- Tournaments (Home → Tournament, or the **Event** button): a round robin for 3–12 players, single games. Every player meets everyone
   once, with a bye each round for odd counts. Decks from your saved deck list are dealt at random: no deck at two
   tables in the same round, and no player gets the same deck twice (needs at least 2 decks per table). Later rounds'
   decks stay hidden until the round starts, and a round can be re-dealt before any result. Matches started with
