@@ -17,8 +17,8 @@ A two-player Magic: The Gathering life tracker built for an iPad sitting beside 
   tables in the same round, and no player gets the same deck twice (needs at least 2 decks per table). Later rounds'
   decks stay hidden until the round starts, and a round can be re-dealt before any result. Matches started with
   **Play here** report the winner and their life left automatically (undo takes it back); other tables enter the
-  winner and life by hand. Standings rank by wins, then head-to-head when two are tied, record against everyone
-  else when three or more are tied, then total life left in games won, then a fixed coin flip. Also: the full
+  winner and life by hand. Standings rank by wins, then head-to-head when two are tied, a mini-league (wins
+  against the others in the tie) when three or more are tied, then total life left in games won, then a fixed coin flip. Also: the full
   schedule, deck win rates for balancing, a champion screen and a past-winners list.
 - Match play: single games, best of 3 or best of 5. Score and win pips on screen, a prompt to record the result when
   someone is out, the loser chooses play or draw, and a game recap with a turn-by-turn life graph.
@@ -67,7 +67,7 @@ after a move to a new address, restore from a backup (History → Backup) to bri
 index.html             the whole app
 rules.json             Comprehensive Rules for offline search (updated monthly)
 sw.js                  offline cache (bump VERSION after changes)
-scripts/               rules updater
+scripts/               rules updater; tournament check (node scripts/2026-11-07-tournament-check.mjs)
 manifest.webmanifest   Home Screen name and icons
 CNAME                  custom domain for GitHub Pages
 icons/                 app icons
